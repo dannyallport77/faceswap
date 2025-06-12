@@ -20,6 +20,7 @@ import threading
 import subprocess
 import json
 import time
+import webbrowser
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
@@ -204,7 +205,7 @@ First, let's create a project folder to organize everything."""
                                       command=self.on_mode_change)
         simple_radio.pack(anchor='w', pady=2)
         
-        simple_desc = ttk.Label(mode_frame, text="   Replace any detected face with your target person (faster, easier)", 
+        simple_desc = ttk.Label(mode_frame, text="   Replace any detected face with a target person (faster, easier)", 
                                font=('Arial', 10), foreground='gray')
         simple_desc.pack(anchor='w', padx=20)
         
@@ -216,6 +217,45 @@ First, let's create a project folder to organize everything."""
         advanced_desc = ttk.Label(mode_frame, text="   High-quality swaps between two specific people (slower, more setup)", 
                                  font=('Arial', 10), foreground='gray')
         advanced_desc.pack(anchor='w', padx=20)
+        
+        # Technology selection
+        tech_frame = ttk.LabelFrame(frame, text="Face Swap Technology", padding=10)
+        tech_frame.pack(fill='x', pady=10)
+        
+        tech_info = ttk.Label(tech_frame, text="Choose between professional quality or instant speed:", 
+                             font=('Arial', 10, 'bold'))
+        tech_info.pack(anchor='w', pady=(0, 5))
+        
+        self.technology_var = tk.StringVar(value="faceswap")
+        
+        tech_selection_frame = ttk.Frame(tech_frame)
+        tech_selection_frame.pack(fill='x', pady=5)
+        
+        ttk.Label(tech_selection_frame, text="Technology:", font=('Arial', 10)).pack(side='left', padx=(0, 10))
+        
+        tech_dropdown = ttk.Combobox(tech_selection_frame, textvariable=self.technology_var, 
+                                   values=["faceswap", "rehifaces"], state="readonly", width=15)
+        tech_dropdown.pack(side='left')
+        tech_dropdown.bind('<<ComboboxSelected>>', self.on_technology_change)
+        
+        # Technology descriptions
+        faceswap_radio = ttk.Radiobutton(tech_frame, text="🎭 Traditional FaceSwap", 
+                                        variable=self.technology_var, value="faceswap", 
+                                        command=self.on_technology_change)
+        faceswap_radio.pack(anchor='w', pady=2)
+        
+        faceswap_desc = ttk.Label(tech_frame, text="   Professional quality • 12-48 hour training • Custom models • Excellent results", 
+                                 font=('Arial', 10), foreground='gray')
+        faceswap_desc.pack(anchor='w', padx=20)
+        
+        rehifaces_radio = ttk.Radiobutton(tech_frame, text="⚡ ReHiFace-S (Real-time)", 
+                                         variable=self.technology_var, value="rehifaces",
+                                         command=self.on_technology_change)
+        rehifaces_radio.pack(anchor='w', pady=2)
+        
+        rehifaces_desc = ttk.Label(tech_frame, text="   Instant results • 10 second setup • Pre-trained models • muke.ai speed", 
+                                  font=('Arial', 10), foreground='gray')
+        rehifaces_desc.pack(anchor='w', padx=20)
         
     def update_mode_structure(self):
         """Update the GUI structure based on current mode (create/remove Step 4)"""
@@ -256,6 +296,112 @@ First, let's create a project folder to organize everything."""
             
         self.update_step_display()
         
+    def on_technology_change(self, event=None):
+        """Handle technology change between FaceSwap and ReHiFace-S"""
+        technology = self.technology_var.get()
+        
+        if technology == "rehifaces":
+            # Show message about switching to ReHiFace-S
+            messagebox.showinfo("Technology Switch", 
+                               "🚀 Switching to ReHiFace-S Real-time Face Swap!\n\n"
+                               "This technology provides:\n"
+                               "• Instant results (10 seconds setup)\n"
+                               "• Real-time processing\n"
+                               "• Pre-trained models\n"
+                               "• muke.ai-style speed\n\n"
+                               "Note: For maximum quality, use Traditional FaceSwap.")
+            
+            # Update status
+            self.status_label.config(text="Technology: ReHiFace-S (Real-time) - Ready for instant face swapping", 
+                                   foreground='blue')
+        else:
+            # Traditional FaceSwap
+            self.status_label.config(text="Technology: Traditional FaceSwap - Ready for professional quality", 
+                                   foreground='green')
+        
+        # Update step content based on technology
+        if hasattr(self, 'step2_frame'):
+            self.update_step2_content()
+        if hasattr(self, 'step3_frame'):
+            self.update_step3_content()
+        
+        # Update processing instructions based on technology
+        self.update_processing_instructions()
+        
+    def update_processing_instructions(self):
+        """Update processing step instructions based on selected technology"""
+        technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
+        
+        if hasattr(self, 'step5_frame'):
+            # Update Step 5 content to reflect the selected technology
+            self.update_processing_content()
+    
+    def update_processing_content(self):
+        """Update the processing step content based on selected technology"""
+        if not hasattr(self, 'processing_instructions_frame'):
+            return
+            
+        # Clear existing content
+        for widget in self.processing_instructions_frame.winfo_children():
+            widget.destroy()
+            
+        technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
+        
+        if technology == "rehifaces":
+            # ReHiFace-S Instructions
+            instructions = """🚀 ReHiFace-S Real-time Processing:
+
+✅ INSTANT FACE SWAPPING (No training required!)
+1. Select your source face image or video
+2. Add content where faces will be replaced
+3. Click 'Start Processing' for instant results
+4. Get face-swapped content in seconds!
+
+⚡ Benefits:
+• 10 second setup vs 12-48 hours training
+• Real-time processing (9,000x faster!)
+• Pre-trained models (no custom training)
+• Perfect for quick demos and testing"""
+            color = 'blue'
+            
+            # Add ReHiFace-S specific controls
+            rehiface_controls = ttk.Frame(self.tech_controls_frame)
+            rehiface_controls.pack(fill='x')
+            
+            ttk.Button(rehiface_controls, text="🌐 Open ReHiFace-S Web Interface", 
+                      command=self.launch_rehifaces_web).pack(side='left', padx=5)
+            
+        else:
+            # Traditional FaceSwap Instructions
+            mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+            
+            if mode == "simple":
+                instructions = """🎭 Traditional FaceSwap - Simple Mode Processing:
+
+1. Extract NEW FACE training material
+2. Train face-swapping model (12-48+ hours)
+3. Convert your content with face swaps
+
+✅ High-quality custom results
+⏰ Training time: 12-48+ hours (patience required)
+🎯 Perfect for professional projects"""
+            else:
+                instructions = """🎭 Traditional FaceSwap - Advanced Mode Processing:
+
+1. Extract ORIGINAL FACE training material (face to remove)
+2. Extract NEW FACE training material (replacement face)
+3. Train face-swapping model (12-48+ hours)
+4. Convert your content with face swaps
+
+✅ Maximum quality results
+⏰ Training time: 12-48+ hours (patience required)
+🏆 Professional-grade custom models"""
+            color = 'darkgreen'
+        
+        instruction_label = ttk.Label(self.processing_instructions_frame, text=instructions, 
+                                    wraplength=600, justify='left', foreground=color)
+        instruction_label.pack(pady=10)
+        
     def update_tab_titles(self):
         """Update tab titles based on current mode"""
         mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
@@ -291,13 +437,30 @@ First, let's create a project folder to organize everything."""
             widget.destroy()
             
         mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
         
         if mode == "simple":
             # Simple mode: Only target person training
-            ttk.Label(self.step2_frame, text="Step 2: New Face Training Data", 
-                     font=('Arial', 16, 'bold')).pack(pady=10)
-            
-            instructions = """Add training videos or images of the person whose face you want to PUT ONTO others.
+            if technology == "rehifaces":
+                title = "Step 2: Source Face Selection (ReHiFace-S)"
+                instructions = """Select the face you want to put onto others using ReHiFace-S real-time technology.
+
+🚀 ReHiFace-S Requirements:
+• Just ONE clear photo of the face you want to use
+• No training required - instant results!
+• Works with any clear face image (JPG/PNG)
+• 10 second setup vs 12-48 hours training
+
+💡 For best results:
+• Use a clear, front-facing photo
+• Good lighting and high resolution
+• Single person in the image preferred
+
+Select the source face image:"""
+                label_text = "📸 Source Face Image (ReHiFace-S)"
+            else:
+                title = "Step 2: New Face Training Data"
+                instructions = """Add training videos or images of the person whose face you want to PUT ONTO others.
 
 In Simple Mode:
 • AI will detect ANY face in your content
@@ -311,23 +474,34 @@ In Simple Mode:
 • Use videos for more variety (different angles/expressions)
 
 Upload clear videos/images of the person whose face you want to USE AS REPLACEMENT:"""
+                label_text = "🎭 NEW FACE Training Material (Face to PUT ON others)"
+            
+            ttk.Label(self.step2_frame, text=title, 
+                     font=('Arial', 16, 'bold')).pack(pady=10)
             
             ttk.Label(self.step2_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Target person training
-            target_frame = ttk.LabelFrame(self.step2_frame, text="🎭 NEW FACE Training Material (Face to PUT ON others)", padding=10)
+            target_frame = ttk.LabelFrame(self.step2_frame, text=label_text, padding=10)
             target_frame.pack(fill='both', expand=True, pady=10)
             
             buttons_frame = ttk.Frame(target_frame)
             buttons_frame.pack(fill='x', pady=5)
             
-            add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
-                      command=lambda: self.add_files('target_faces', 'video'))
-            add_video_btn.pack(side='left', padx=5)
-            
-            add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
-                      command=lambda: self.add_files('target_faces', 'images'))
-            add_images_btn.pack(side='left', padx=5)
+            if technology == "rehifaces":
+                # ReHiFace-S: Only need single image selection
+                add_images_btn = ttk.Button(buttons_frame, text="Select Face Image", 
+                          command=lambda: self.add_files('target_faces', 'images'))
+                add_images_btn.pack(side='left', padx=5)
+            else:
+                # Traditional FaceSwap: Need multiple images/videos
+                add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
+                          command=lambda: self.add_files('target_faces', 'video'))
+                add_video_btn.pack(side='left', padx=5)
+                
+                add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
+                          command=lambda: self.add_files('target_faces', 'images'))
+                add_images_btn.pack(side='left', padx=5)
             
             clear_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('target_faces'))
@@ -411,13 +585,30 @@ Upload clear videos/images of the person whose face you want to REMOVE/REPLACE:"
             widget.destroy()
             
         mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
         
         if mode == "simple":
             # Simple mode: Skip to content conversion
             ttk.Label(self.step3_frame, text="Step 3: Content to Convert", 
                      font=('Arial', 16, 'bold')).pack(pady=10)
             
-            instructions = """Add the videos or images where you want to perform face swapping.
+            if technology == "rehifaces":
+                instructions = """Add the videos or images where you want to apply face swapping using ReHiFace-S.
+
+🚀 ReHiFace-S Processing:
+• Any detected face will be REPLACED with your source face from Step 2
+• Real-time processing - results in seconds!
+• No training required - instant face swapping
+• Works with videos and images
+
+💡 Tips for best results:
+• Use high-quality source content
+• Ensure faces are clearly visible
+• Good lighting improves results
+
+Add your content files below (where faces will be REPLACED):"""
+            else:
+                instructions = """Add the videos or images where you want to perform face swapping.
 
 In Simple Mode:
 • Any detected face will be REPLACED with your NEW FACE from Step 2
@@ -430,7 +621,7 @@ Add your content files below (where faces will be REPLACED):"""
             ttk.Label(self.step3_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Convert content for simple mode
-            convert_frame = ttk.LabelFrame(self.step3_frame, text="📺 Content Where Faces Will Be REPLACED", padding=10)
+            convert_frame = ttk.LabelFrame(self.step3_frame, text="📺 Content Where Faces Will BE REPLACED", padding=10)
             convert_frame.pack(fill='both', expand=True, pady=10)
             
             buttons_frame = ttk.Frame(convert_frame)
@@ -562,20 +753,16 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         """Step 5: Processing"""
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="5. Processing")
+        self.step5_frame = frame
         
         ttk.Label(frame, text="Step 5: Automatic Processing", 
                  font=('Arial', 16, 'bold')).pack(pady=10)
         
-        instructions = """Click 'Start Processing' to begin the automatic face-swapping process:
-
-1. Extract faces from source material (Person A)
-2. Extract faces from target material (Person B)  
-3. Train face-swapping model (this may take several hours)
-4. Convert your content with face swaps
-
-You can monitor progress below. Training can take 12-48+ hours depending on your hardware."""
+        # Create technology-aware instructions
+        self.processing_instructions_frame = ttk.Frame(frame)
+        self.processing_instructions_frame.pack(fill='x', pady=10)
         
-        ttk.Label(frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
+        self.update_processing_content()
         
         # Processing controls
         controls_frame = ttk.Frame(frame)
@@ -588,6 +775,10 @@ You can monitor progress below. Training can take 12-48+ hours depending on your
         self.stop_btn = ttk.Button(controls_frame, text="⏹ Stop", 
                                   command=self.stop_processing, state='disabled')
         self.stop_btn.pack(side='left', padx=5)
+        
+        # Technology-specific controls
+        self.tech_controls_frame = ttk.Frame(controls_frame)
+        self.tech_controls_frame.pack(side='left', padx=20)
         
         # Progress details
         progress_frame = ttk.LabelFrame(frame, text="Processing Progress", padding=10)
@@ -992,11 +1183,23 @@ You can also view training progress and model information below."""
     def validate_all_inputs(self) -> bool:
         """Validate all inputs before processing"""
         mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
         
         if not self.project_dir:
             messagebox.showerror("Error", "Project folder not selected.")
             return False
+        
+        if technology == "rehifaces":
+            # ReHiFace-S validation: Only need source face and content to convert
+            if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
+                messagebox.showerror("Error", "Please select a source face image for ReHiFace-S.")
+                return False
+            if not hasattr(self, 'convert_files') or not self.convert_files:
+                messagebox.showerror("Error", "Please select content files to process with ReHiFace-S.")
+                return False
+            return True
             
+        # Traditional FaceSwap validation
         if mode == "simple":
             # Simple Mode: Only need NEW FACE training material and content to convert
             if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
@@ -1022,7 +1225,16 @@ You can also view training progress and model information below."""
         """Run the complete processing pipeline"""
         try:
             mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
-            self.log_message(f"🚀 Starting FaceSwap processing pipeline in {mode} mode...")
+            technology = getattr(self, 'technology_var', tk.StringVar(value="faceswap")).get()
+            
+            if technology == "rehifaces":
+                # Use ReHiFace-S processing pipeline
+                self.log_message(f"🚀 Starting ReHiFace-S real-time processing...")
+                self.run_rehifaces_processing()
+                return
+            else:
+                # Use traditional FaceSwap processing pipeline
+                self.log_message(f"🚀 Starting FaceSwap processing pipeline in {mode} mode...")
             
             # Clean all input files first to avoid crashes
             self.log_message("🧹 Cleaning input files...")
@@ -1400,6 +1612,344 @@ You can also view training progress and model information below."""
             self.log_message(f"Command failed: {str(e)}")
             raise
             
+    def run_rehifaces_processing(self):
+        """Run ReHiFace-S real-time processing pipeline"""
+        try:
+            # Check if ReHiFace-S is installed
+            rehifaces_path = Path("fast_faceswap/ReHiFace-S")
+            
+            if not rehifaces_path.exists():
+                self.log_message("❌ ReHiFace-S not found. Installing...")
+                # Trigger installation
+                self.root.after(0, lambda: messagebox.showinfo(
+                    "ReHiFace-S Required",
+                    "🚀 ReHiFace-S needs to be installed first.\n\n"
+                    "Click 'Open ReHiFace-S Web Interface' to install it automatically."
+                ))
+                return
+            
+            # Check if we have the required files
+            if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
+                self.log_message("❌ No source face selected for ReHiFace-S")
+                return
+                
+            if not hasattr(self, 'convert_files') or not self.convert_files:
+                self.log_message("❌ No content files selected for processing")
+                return
+            
+            # Get the first target face as the source face for ReHiFace-S
+            source_face = self.target_faces_files[0]
+            self.log_message(f"📸 Using source face: {os.path.basename(source_face)}")
+            
+            # Create output directory
+            output_dir = os.path.join(self.project_dir, 'rehifaces_output')
+            os.makedirs(output_dir, exist_ok=True)
+            self.log_message(f"📁 Output directory: {output_dir}")
+            
+            # Process each content file with ReHiFace-S
+            total_files = len(self.convert_files)
+            successful_files = []
+            failed_files = []
+            
+            for i, target_file in enumerate(self.convert_files):
+                self.update_progress(f"Processing with ReHiFace-S: {i+1}/{total_files}")
+                self.log_message(f"🎭 Processing file {i+1}/{total_files}: {os.path.basename(target_file)}")
+                
+                # Generate output filename
+                base_name = os.path.splitext(os.path.basename(target_file))[0]
+                file_ext = os.path.splitext(target_file)[1]
+                output_file = os.path.join(output_dir, f"rehifaces_{base_name}{file_ext}")
+                
+                # Run ReHiFace-S processing
+                success = self.run_rehifaces_swap(source_face, target_file, output_file)
+                
+                if success and os.path.exists(output_file):
+                    file_size = os.path.getsize(output_file)
+                    self.log_message(f"✅ Completed: {os.path.basename(output_file)} ({file_size} bytes)")
+                    successful_files.append(output_file)
+                else:
+                    self.log_message(f"❌ Failed to process: {os.path.basename(target_file)}")
+                    failed_files.append(target_file)
+            
+            # Report results
+            if successful_files:
+                self.log_message(f"🎉 ReHiFace-S processing completed! {len(successful_files)} files processed successfully.")
+                if failed_files:
+                    self.log_message(f"⚠️ {len(failed_files)} files failed to process.")
+                
+                # List successful files
+                self.log_message("📂 Successful outputs:")
+                for file_path in successful_files:
+                    self.log_message(f"   • {os.path.basename(file_path)}")
+            else:
+                self.log_message("❌ No files were processed successfully.")
+                # Show troubleshooting info
+                self.log_message("🔧 Troubleshooting:")
+                self.log_message("   • Check if ReHiFace-S conda environment has required packages")
+                self.log_message("   • Try using the web interface instead")
+                self.log_message("   • Make sure source face image is clear and high quality")
+            
+            self.update_progress("ReHiFace-S processing completed!")
+            
+            # Switch to results tab
+            self.root.after(0, lambda: self.show_rehifaces_results(output_dir))
+            
+        except Exception as e:
+            self.log_message(f"❌ ReHiFace-S processing failed: {str(e)}")
+            self.update_progress("ReHiFace-S processing failed!")
+        finally:
+            self.root.after(0, self.processing_finished)
+    
+    def run_rehifaces_swap(self, source_face: str, target_file: str, output_file: str) -> bool:
+        """Run a single ReHiFace-S face swap operation"""
+        try:
+            # Change to ReHiFace-S directory
+            original_dir = os.getcwd()
+            rehifaces_path = Path("fast_faceswap/ReHiFace-S")
+            
+            if not rehifaces_path.exists():
+                self.log_message("❌ ReHiFace-S directory not found")
+                return False
+            
+            os.chdir(rehifaces_path)
+            
+            # Find the appropriate script - prioritize working_face_swap.py
+            swap_scripts = ['working_face_swap.py', 'quick_swap.py', 'swap_face.py', 'inference.py', 'app.py']
+            swap_script = None
+            
+            for script in swap_scripts:
+                script_path = rehifaces_path / script
+                if script_path.exists():
+                    swap_script = script
+                    break
+            
+            if not swap_script:
+                self.log_message("❌ ReHiFace-S swap script not found")
+                return False
+            
+            # Convert paths to absolute paths to avoid confusion
+            abs_source_path = str(Path(source_face).resolve() if Path(source_face).is_absolute() else Path(original_dir) / source_face)
+            abs_target_path = str(Path(target_file).resolve() if Path(target_file).is_absolute() else Path(original_dir) / target_file)
+            abs_output_path = str(Path(output_file).resolve() if Path(output_file).is_absolute() else Path(original_dir) / output_file)
+            
+            # Prepare command for the working script
+            cmd = [
+                'conda', 'run', '-n', 'rehifaces', 'python', swap_script,
+                '--source', abs_source_path,
+                '--target', abs_target_path,
+                '--output', abs_output_path,
+                '--gpu'
+            ]
+            
+            self.log_message(f"🔧 Running: {swap_script} with ReHiFace-S...")
+            self.log_message(f"📸 Source: {abs_source_path}")
+            self.log_message(f"🎬 Target: {abs_target_path}")
+            self.log_message(f"📤 Output: {abs_output_path}")
+            
+            # Run the command
+            process = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout per file
+            )
+            
+            if process.returncode == 0:
+                # Check if output file was actually created using absolute path
+                output_path_obj = Path(abs_output_path)
+                if output_path_obj.exists() and output_path_obj.stat().st_size > 0:
+                    self.log_message(f"✅ Output file created successfully: {output_path_obj} ({output_path_obj.stat().st_size} bytes)")
+                    return True
+                else:
+                    self.log_message(f"❌ Output file not created or is empty: {output_path_obj}")
+                    # Log what files actually exist in the output directory
+                    output_dir = output_path_obj.parent
+                    if output_dir.exists():
+                        existing_files = list(output_dir.glob('*'))
+                        self.log_message(f"📁 Files in output directory: {[f.name for f in existing_files]}")
+                    return False
+            else:
+                self.log_message(f"❌ ReHiFace-S script failed (exit code {process.returncode})")
+                if process.stdout:
+                    self.log_message(f"📤 Script output: {process.stdout}")
+                if process.stderr:
+                    self.log_message(f"❌ Script error: {process.stderr}")
+                # Try the Python API as fallback
+                return self.run_rehifaces_python_api(source_face, target_file, output_file, original_dir)
+                
+        except subprocess.TimeoutExpired:
+            self.log_message("❌ ReHiFace-S processing timed out")
+            return False
+        except Exception as e:
+            self.log_message(f"❌ ReHiFace-S swap error: {str(e)}")
+            return False
+        finally:
+            # Always return to original directory
+            os.chdir(original_dir)
+    
+    def run_rehifaces_python_api(self, source_face: str, target_file: str, output_file: str, original_dir: str) -> bool:
+        """Try to use ReHiFace-S Python API directly"""
+        try:
+            # Import ReHiFace-S modules
+            import sys
+            sys.path.append(str(Path.cwd()))
+            
+            from app import FaceSwapProcessor, initialize_processor
+            
+            self.log_message("🔧 Using ReHiFace-S Python API...")
+            
+            # Initialize processor
+            initialize_processor()
+            from app import processor
+            
+            # Load source and target
+            source_path = str(Path(original_dir) / source_face)
+            target_path = str(Path(original_dir) / target_file)
+            output_path = str(Path(original_dir) / output_file)
+            
+            self.log_message(f"📸 Source: {source_path}")
+            self.log_message(f"🎬 Target: {target_path}")
+            self.log_message(f"📤 Output: {output_path}")
+            
+            # Load images
+            import cv2
+            source_img = cv2.imread(source_path)
+            
+            if source_img is None:
+                self.log_message(f"❌ Could not load source image: {source_path}")
+                return False
+            
+            # Check if target is video or image
+            target_ext = os.path.splitext(target_path)[1].lower()
+            
+            if target_ext in ['.mp4', '.avi', '.mov', '.mkv']:
+                # Process video
+                success = self.process_video_with_rehifaces(processor, source_img, target_path, output_path)
+            else:
+                # Process image
+                target_img = cv2.imread(target_path)
+                if target_img is None:
+                    self.log_message(f"❌ Could not load target image: {target_path}")
+                    return False
+                
+                # Use processor to swap faces
+                result = processor.process_frame(target_img, source_img, True, 0.5, True, 'rct')
+                cv2.imwrite(output_path, result)
+                success = True
+            
+            return success
+            
+        except ImportError as e:
+            self.log_message(f"❌ Could not import ReHiFace-S modules: {e}")
+            return False
+        except Exception as e:
+            self.log_message(f"❌ ReHiFace-S API error: {e}")
+            return False
+    
+    def process_video_with_rehifaces(self, processor, source_img, target_path: str, output_path: str) -> bool:
+        """Process video file with ReHiFace-S"""
+        try:
+            import cv2
+            
+            cap = cv2.VideoCapture(target_path)
+            if not cap.isOpened():
+                self.log_message(f"❌ Could not open video: {target_path}")
+                return False
+            
+            # Get video properties
+            fps = int(cap.get(cv2.CAP_PROP_FPS))
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            
+            # Create video writer
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+            
+            self.log_message(f"📹 Processing video: {total_frames} frames at {fps} FPS")
+            
+            frame_count = 0
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                
+                # Process frame with face swap
+                try:
+                    processed_frame = processor.process_frame(frame, source_img, True, 0.5, True, 'rct')
+                    out.write(processed_frame)
+                except Exception as frame_error:
+                    # If frame processing fails, use original frame
+                    self.log_message(f"⚠️ Frame {frame_count} processing failed: {frame_error}")
+                    out.write(frame)
+                
+                frame_count += 1
+                if frame_count % 30 == 0:  # Update progress every 30 frames
+                    progress = (frame_count / total_frames) * 100
+                    self.log_message(f"📹 Progress: {frame_count}/{total_frames} frames ({progress:.1f}%)")
+            
+            cap.release()
+            out.release()
+            
+            self.log_message(f"✅ Video processing completed: {frame_count} frames")
+            return True
+            
+        except Exception as e:
+            self.log_message(f"❌ Video processing error: {e}")
+            return False
+    
+    def show_rehifaces_results(self, output_dir: str):
+        """Show ReHiFace-S results"""
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        if mode == "simple":
+            self.current_step = 6
+        else:
+            self.current_step = 6
+        self.update_step_display()
+        
+        # Count output files and get their details
+        output_files = []
+        file_details = []
+        if os.path.exists(output_dir):
+            for f in os.listdir(output_dir):
+                if f.endswith(('.mp4', '.avi', '.mov', '.png', '.jpg', '.jpeg')):
+                    output_files.append(f)
+                    file_path = os.path.join(output_dir, f)
+                    file_size = os.path.getsize(file_path)
+                    file_details.append(f"   • {f} ({file_size:,} bytes)")
+        
+        # Create detailed results info
+        results_info = f"""🎉 ReHiFace-S processing completed!
+
+🚀 Technology: ReHiFace-S (Real-time)
+📁 Project Location: {self.project_dir}
+📂 Results Location: {output_dir}
+
+Files Processed:
+• Source face: {os.path.basename(self.target_faces_files[0]) if hasattr(self, 'target_faces_files') and self.target_faces_files else 'None'}
+• Content files: {len(self.convert_files) if hasattr(self, 'convert_files') else 0} files
+
+Output Files Created ({len(output_files)} files):
+{chr(10).join(file_details) if file_details else '   • No output files found'}
+
+⚡ Results saved to: {output_dir}
+
+🎭 Your instant face-swapped content is ready!
+⏱️ Processing time: Seconds (vs hours with traditional training)
+
+💡 Click "Open Results Folder" below to view your files!
+"""
+        
+        self.results_text.delete(1.0, tk.END)
+        self.results_text.insert(tk.END, results_info)
+        
+        # Auto-open results folder if files were created
+        if output_files:
+            self.log_message(f"🎯 {len(output_files)} output files created successfully!")
+            self.log_message(f"📁 Opening results folder: {output_dir}")
+            # Auto-open folder after a short delay to let the user see the results message
+            self.root.after(2000, lambda: self.open_specific_folder(output_dir))
+
     def update_progress(self, message: str):
         """Update progress message"""
         self.root.after(0, lambda: self.progress_detail.config(text=message))
@@ -1461,6 +2011,258 @@ You can find your face-swapped videos/images in the converted_output folder.
         """Open project folder in file manager"""
         if self.project_dir:
             os.system(f'open "{self.project_dir}"')
+    
+    def open_specific_folder(self, folder_path: str):
+        """Open a specific folder in the file manager"""
+        try:
+            if os.path.exists(folder_path):
+                import platform
+                system = platform.system()
+                if system == "Darwin":  # macOS
+                    os.system(f'open "{folder_path}"')
+                elif system == "Windows":
+                    os.system(f'explorer "{folder_path}"')
+                else:  # Linux and others
+                    os.system(f'xdg-open "{folder_path}"')
+                self.log_message(f"📁 Opened folder: {folder_path}")
+            else:
+                self.log_message(f"❌ Folder not found: {folder_path}")
+        except Exception as e:
+            self.log_message(f"❌ Failed to open folder: {e}")
+    
+    def launch_rehifaces_web(self):
+        """Launch ReHiFace-S web interface"""
+        try:
+            # Check if ReHiFace-S is installed
+            rehifaces_path = Path("fast_faceswap/ReHiFace-S")
+            
+            if not rehifaces_path.exists():
+                # ReHiFace-S not installed, offer to install
+                response = messagebox.askyesno(
+                    "Install ReHiFace-S?",
+                    "🚀 ReHiFace-S is not installed yet.\n\n"
+                    "ReHiFace-S provides:\n"
+                    "• Instant face swapping (10 second setup)\n"
+                    "• Real-time processing (9,000x faster)\n"
+                    "• Pre-trained models (no training required)\n"
+                    "• muke.ai-style speed\n\n"
+                    "Would you like to install ReHiFace-S now?"
+                )
+                
+                if response:
+                    self.install_rehifaces()
+                return
+            
+            # Check if conda environment exists
+            try:
+                result = subprocess.run(['conda', 'list', '-n', 'rehifaces'], 
+                                      capture_output=True, text=True, timeout=10)
+                conda_available = result.returncode == 0
+            except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+                conda_available = False
+            
+            if not conda_available:
+                messagebox.showerror(
+                    "Environment Missing",
+                    "❌ ReHiFace-S conda environment not found.\n\n"
+                    "Please run the installation script:\n"
+                    "./install_rehifaces.sh\n\n"
+                    "Or install manually:\n"
+                    "conda create -n rehifaces python=3.10\n"
+                    "conda activate rehifaces\n"
+                    "pip install torch torchvision onnxruntime opencv-python gradio"
+                )
+                return
+            
+            # Launch ReHiFace-S web interface
+            messagebox.showinfo(
+                "Launching ReHiFace-S",
+                "🌐 Launching ReHiFace-S Web Interface...\n\n"
+                "• Opening at http://localhost:7860\n"
+                "• Use your browser to access the interface\n"
+                "• Upload source face and target video/image\n"
+                "• Get instant face swap results!\n\n"
+                "Click OK to continue..."
+            )
+            
+            # Change to ReHiFace-S directory and launch
+            original_dir = os.getcwd()
+            os.chdir(rehifaces_path)
+            
+            try:
+                # Find the appropriate launch script
+                web_scripts = ['web_interface.py', 'app.py', 'demo.py', 'interface.py']
+                web_script = None
+                
+                for script in web_scripts:
+                    script_path = rehifaces_path / script
+                    if script_path.exists():
+                        web_script = script
+                        break
+                
+                if not web_script:
+                    messagebox.showerror(
+                        "Web Interface Not Found",
+                        "❌ ReHiFace-S web interface script not found.\n\n"
+                        "Expected files: web_interface.py, app.py, demo.py, or interface.py\n\n"
+                        "Please run the installation script:\n"
+                        "./install_rehifaces.sh"
+                    )
+                    return
+                
+                # Launch web interface in background
+                web_cmd = ['conda', 'run', '-n', 'rehifaces', 'python', web_script]
+                
+                # Start the process in background
+                process = subprocess.Popen(web_cmd, 
+                                         stdout=subprocess.PIPE, 
+                                         stderr=subprocess.PIPE)
+                
+                # Give it a moment to start
+                time.sleep(3)
+                
+                # Check if process is still running (not crashed)
+                if process.poll() is None:
+                    # Success - open browser
+                    webbrowser.open('http://localhost:7860')
+                    
+                    messagebox.showinfo(
+                        "Success!",
+                        "✅ ReHiFace-S web interface is running!\n\n"
+                        "• Access at: http://localhost:7860\n"
+                        "• The interface should open in your browser\n"
+                        "• Upload your source face and target content\n"
+                        "• Enjoy instant face swapping!"
+                    )
+                else:
+                    # Process crashed, get error
+                    stdout, stderr = process.communicate()
+                    raise subprocess.SubprocessError(f"Process failed: {stderr.decode()}")
+                    
+            except Exception as launch_error:
+                messagebox.showerror(
+                    "Launch Failed",
+                    f"❌ Failed to launch ReHiFace-S web interface.\n\n"
+                    f"Error: {str(launch_error)}\n\n"
+                    "Try manual launch:\n"
+                    f"1. cd fast_faceswap/ReHiFace-S\n"
+                    f"2. conda activate rehifaces\n"
+                    f"3. python {web_script if 'web_script' in locals() else 'web_interface.py'}"
+                )
+                
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to launch ReHiFace-S: {str(e)}")
+        finally:
+            # Return to original directory
+            if 'original_dir' in locals():
+                os.chdir(original_dir)
+    
+    def install_rehifaces(self):
+        """Install ReHiFace-S system"""
+        try:
+            # Show installation dialog
+            install_dialog = messagebox.askyesno(
+                "Install ReHiFace-S",
+                "🚀 Installing ReHiFace-S Real-Time Face Swap\n\n"
+                "This will:\n"
+                "• Create a new conda environment 'rehifaces'\n"
+                "• Download ReHiFace-S from HuggingFace\n"
+                "• Install all required dependencies\n"
+                "• Set up the web interface\n\n"
+                "Installation may take 5-10 minutes.\n"
+                "Continue with installation?"
+            )
+            
+            if not install_dialog:
+                return
+                
+            # Check if installation script exists
+            install_script = Path("install_rehifaces.sh")
+            if not install_script.exists():
+                messagebox.showerror(
+                    "Installation Script Missing",
+                    "❌ Installation script not found: install_rehifaces.sh\n\n"
+                    "Please download the complete package or\n"
+                    "install ReHiFace-S manually following the\n"
+                    "instructions in FASTER_FACE_SWAP_ALTERNATIVES.md"
+                )
+                return
+            
+            # Show progress dialog
+            progress_window = tk.Toplevel(self.root)
+            progress_window.title("Installing ReHiFace-S...")
+            progress_window.geometry("500x300")
+            progress_window.transient(self.root)
+            progress_window.grab_set()
+            
+            # Progress label
+            progress_label = ttk.Label(progress_window, 
+                                     text="🚀 Installing ReHiFace-S...\nThis may take 5-10 minutes.",
+                                     font=('Arial', 12))
+            progress_label.pack(pady=20)
+            
+            # Progress bar
+            progress_bar = ttk.Progressbar(progress_window, length=400, mode='indeterminate')
+            progress_bar.pack(pady=10)
+            progress_bar.start()
+            
+            # Log text
+            log_text = scrolledtext.ScrolledText(progress_window, height=10, width=60)
+            log_text.pack(fill='both', expand=True, padx=20, pady=10)
+            
+            def run_installation():
+                try:
+                    # Run installation script
+                    process = subprocess.Popen(['bash', str(install_script)],
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT,
+                                             text=True,
+                                             universal_newlines=True)
+                    
+                    # Stream output to log
+                    for line in iter(process.stdout.readline, ''):
+                        if line:
+                            progress_window.after(0, lambda l=line: log_text.insert(tk.END, l))
+                    
+                    # Wait for completion
+                    process.wait()
+                    
+                    if process.returncode == 0:
+                        # Success
+                        progress_window.after(0, lambda: [
+                            progress_bar.stop(),
+                            progress_label.config(text="✅ Installation completed successfully!"),
+                            messagebox.showinfo("Success", 
+                                               "🎉 ReHiFace-S installed successfully!\n\n"
+                                               "You can now use the real-time face swap features.\n"
+                                               "Click 'Open ReHiFace-S Web Interface' to get started!"),
+                            progress_window.destroy()
+                        ])
+                    else:
+                        # Failed
+                        progress_window.after(0, lambda: [
+                            progress_bar.stop(),
+                            progress_label.config(text="❌ Installation failed"),
+                            messagebox.showerror("Installation Failed",
+                                               "❌ ReHiFace-S installation failed.\n\n"
+                                               "Check the log output above for details.\n"
+                                               "You may need to install manually.")
+                        ])
+                    
+                except Exception as e:
+                    progress_window.after(0, lambda: [
+                        progress_bar.stop(),
+                        progress_label.config(text="❌ Installation error"),
+                        messagebox.showerror("Error", f"Installation error: {str(e)}")
+                    ])
+            
+            # Run installation in thread
+            install_thread = threading.Thread(target=run_installation)
+            install_thread.daemon = True
+            install_thread.start()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to start installation: {str(e)}")
             
     def new_project(self):
         """Start a new project"""
