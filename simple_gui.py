@@ -857,13 +857,14 @@ You can also view training progress and model information below."""
         # Update notebook selection (map current_step to actual tab index)
         try:
             if mode == "simple":
-                # Simple mode tab mapping: Step 1->Tab 0, Step 2->Tab 1, Step 3->Tab 2, Step 5->Tab 4, Step 6->Tab 5
+                # Simple mode tab mapping: Step 1->Tab 0, Step 2->Tab 1, Step 3->Tab 2, Step 5->Tab 3, Step 6->Tab 4
+                # (Step 4 is removed in Simple mode, so tabs are 0,1,2,3,4)
                 if self.current_step <= 3:
                     tab_index = self.current_step - 1
                 elif self.current_step == 5:
-                    tab_index = 4  # Processing tab
+                    tab_index = 3  # Processing tab (was index 4, now index 3)
                 else:  # self.current_step == 6
-                    tab_index = 5  # Results tab
+                    tab_index = 4  # Results tab (was index 5, now index 4)
             else:
                 # Advanced mode: direct mapping
                 tab_index = self.current_step - 1
@@ -2082,12 +2083,12 @@ You can find your face-swapped videos/images in the converted_output folder.
         """Open results folder in file manager"""
         if self.project_dir:
             results_path = os.path.join(self.project_dir, 'converted_output')
-            os.system(f'open "{results_path}"')
+            self.open_specific_folder(results_path)
             
     def open_project_folder(self):
         """Open project folder in file manager"""
         if self.project_dir:
-            os.system(f'open "{self.project_dir}"')
+            self.open_specific_folder(self.project_dir)
     
     def open_specific_folder(self, folder_path: str):
         """Open a specific folder in the file manager"""
