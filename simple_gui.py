@@ -855,19 +855,26 @@ You can also view training progress and model information below."""
         self.progress_bar['value'] = progress
         
         # Update notebook selection (map current_step to actual tab index)
-        if mode == "simple":
-            # Simple mode tab mapping: Step 1->Tab 0, Step 2->Tab 1, Step 3->Tab 2, Step 5->Tab 4, Step 6->Tab 5
-            if self.current_step <= 3:
+        try:
+            if mode == "simple":
+                # Simple mode tab mapping: Step 1->Tab 0, Step 2->Tab 1, Step 3->Tab 2, Step 5->Tab 4, Step 6->Tab 5
+                if self.current_step <= 3:
+                    tab_index = self.current_step - 1
+                elif self.current_step == 5:
+                    tab_index = 4  # Processing tab
+                else:  # self.current_step == 6
+                    tab_index = 5  # Results tab
+            else:
+                # Advanced mode: direct mapping
                 tab_index = self.current_step - 1
-            elif self.current_step == 5:
-                tab_index = 4  # Processing tab
-            else:  # self.current_step == 6
-                tab_index = 5  # Results tab
-        else:
-            # Advanced mode: direct mapping
-            tab_index = self.current_step - 1
             
-        self.notebook.select(tab_index)
+            # Ensure tab exists before selecting
+            if 0 <= tab_index < len(self.notebook.tabs()):
+                self.notebook.select(tab_index)
+            else:
+                print(f"Warning: Tab index {tab_index} out of range (total tabs: {len(self.notebook.tabs())})")
+        except Exception as e:
+            print(f"Error updating notebook selection: {e}")
         
         # Update button states
         self.prev_btn.config(state='normal' if self.current_step > 1 else 'disabled')
@@ -1711,20 +1718,31 @@ You can also view training progress and model information below."""
                 self.log_message("❌ ReHiFace-S directory not found")
                 return False
             
+            # Get absolute path before changing directory
+            abs_rehifaces_path = rehifaces_path.resolve()
             os.chdir(rehifaces_path)
+            
+            self.log_message(f"🔍 Looking for scripts in: {abs_rehifaces_path}")
             
             # Find the appropriate script - prioritize working_face_swap.py
             swap_scripts = ['working_face_swap.py', 'quick_swap.py', 'swap_face.py', 'inference.py', 'app.py']
             swap_script = None
             
             for script in swap_scripts:
-                script_path = rehifaces_path / script
+                # Check in current directory since we already changed to it
+                script_path = Path(script)
                 if script_path.exists():
                     swap_script = script
+                    self.log_message(f"✅ Found script: {script}")
                     break
+                else:
+                    self.log_message(f"🔍 Script not found: {script}")
             
             if not swap_script:
                 self.log_message("❌ ReHiFace-S swap script not found")
+                # List what files are actually available
+                available_files = [f.name for f in Path('.').glob('*.py')]
+                self.log_message(f"📁 Available Python files: {available_files}")
                 return False
             
             # Convert paths to absolute paths to avoid confusion
@@ -1774,7 +1792,38 @@ You can also view training progress and model information below."""
                     self.log_message(f"📤 Script output: {process.stdout}")
                 if process.stderr:
                     self.log_message(f"❌ Script error: {process.stderr}")
-                # Try the Python API as fallback
+                
+                # Try direct Python execution as fallback (without conda)
+                self.log_message(f"🔄 Trying direct Python execution as fallback...")
+                fallback_cmd = [
+                    'python', swap_script,
+                    '--source', abs_source_path,
+                    '--target', abs_target_path,
+                    '--output', abs_output_path,
+                    '--gpu'
+                ]
+                
+                try:
+                    fallback_process = subprocess.run(
+                        fallback_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    
+                    if fallback_process.returncode == 0:
+                        output_path_obj = Path(abs_output_path)
+                        if output_path_obj.exists() and output_path_obj.stat().st_size > 0:
+                            self.log_message(f"✅ Fallback successful: {output_path_obj} ({output_path_obj.stat().st_size} bytes)")
+                            return True
+                        else:
+                            self.log_message(f"❌ Fallback failed: no output file created")
+                    else:
+                        self.log_message(f"❌ Fallback failed: {fallback_process.stderr}")
+                except Exception as fallback_error:
+                    self.log_message(f"❌ Fallback error: {fallback_error}")
+                
+                # Try the Python API as final fallback
                 return self.run_rehifaces_python_api(source_face, target_file, output_file, original_dir)
                 
         except subprocess.TimeoutExpired:
@@ -1940,8 +1989,18 @@ Output Files Created ({len(output_files)} files):
 💡 Click "Open Results Folder" below to view your files!
 """
         
-        self.results_text.delete(1.0, tk.END)
-        self.results_text.insert(tk.END, results_info)
+        # Ensure we have the results_text widget available
+        try:
+            if hasattr(self, 'results_text') and self.results_text:
+                self.results_text.delete(1.0, tk.END)
+                self.results_text.insert(tk.END, results_info)
+                self.log_message("📊 Results displayed successfully")
+            else:
+                self.log_message("⚠️ Results text widget not available, logging results instead")
+                self.log_message(results_info)
+        except Exception as e:
+            self.log_message(f"❌ Error displaying results: {e}")
+            self.log_message(results_info)
         
         # Auto-open results folder if files were created
         if output_files:
@@ -1949,6 +2008,14 @@ Output Files Created ({len(output_files)} files):
             self.log_message(f"📁 Opening results folder: {output_dir}")
             # Auto-open folder after a short delay to let the user see the results message
             self.root.after(2000, lambda: self.open_specific_folder(output_dir))
+        else:
+            self.log_message("⚠️ No output files found - checking for processing issues")
+            self.log_message(f"Expected output directory: {output_dir}")
+            if os.path.exists(output_dir):
+                all_files = os.listdir(output_dir)
+                self.log_message(f"Files in output directory: {all_files}")
+            else:
+                self.log_message("Output directory does not exist")
 
     def update_progress(self, message: str):
         """Update progress message"""
@@ -1989,17 +2056,27 @@ Output Files Created ({len(output_files)} files):
 Project Location: {self.project_dir}
 
 Files Processed:
-• Source faces extracted: {len(self.source_files)} files
-• Target faces extracted: {len(self.target_faces_files)} files  
-• Content converted: {len(self.convert_files)} files
+• Source faces extracted: {len(self.source_files) if hasattr(self, 'source_files') else 0} files
+• Target faces extracted: {len(self.target_faces_files) if hasattr(self, 'target_faces_files') else 0} files  
+• Content converted: {len(self.convert_files) if hasattr(self, 'convert_files') else 0} files
 
-Results saved to: {os.path.join(self.project_dir, 'converted_output')}
+Results saved to: {os.path.join(self.project_dir, 'converted_output') if self.project_dir else 'No project directory'}
 
 You can find your face-swapped videos/images in the converted_output folder.
 """
         
-        self.results_text.delete(1.0, tk.END)
-        self.results_text.insert(tk.END, results_info)
+        # Ensure we have the results_text widget available
+        try:
+            if hasattr(self, 'results_text') and self.results_text:
+                self.results_text.delete(1.0, tk.END)
+                self.results_text.insert(tk.END, results_info)
+                self.log_message("📊 Results displayed successfully")
+            else:
+                self.log_message("⚠️ Results text widget not available, logging results instead")
+                self.log_message(results_info)
+        except Exception as e:
+            self.log_message(f"❌ Error displaying results: {e}")
+            self.log_message(results_info)
         
     def open_results_folder(self):
         """Open results folder in file manager"""
