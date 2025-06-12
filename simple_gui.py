@@ -27,7 +27,8 @@ class SimpleFaceSwapGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Simple FaceSwap - Step by Step")
-        self.root.geometry("800x700")
+        self.root.geometry("1000x800")  # Increased default size
+        self.root.minsize(800, 600)     # Set minimum size
         
         # Project state
         self.project_dir: Optional[str] = None
@@ -44,8 +45,48 @@ class SimpleFaceSwapGUI:
         
     def setup_ui(self):
         """Create the user interface"""
+        # Create a main scrollable frame
+        self.main_canvas = tk.Canvas(self.root, highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=self.main_canvas.yview)
+        self.scrollable_frame = ttk.Frame(self.main_canvas)
+        
+        # Configure scrolling
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.main_canvas.configure(scrollregion=self.main_canvas.bbox("all"))
+        )
+        
+        self.main_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.main_canvas.configure(yscrollcommand=self.scrollbar.set)
+        
+        # Bind canvas resize to adjust frame width
+        def _on_canvas_configure(event):
+            # Update the scrollable frame width to match canvas width
+            canvas_width = event.width
+            self.main_canvas.itemconfig(self.main_canvas.find_all()[0], width=canvas_width)
+        
+        self.main_canvas.bind('<Configure>', _on_canvas_configure)
+        
+        # Pack scrollbar and canvas
+        self.scrollbar.pack(side="right", fill="y")
+        self.main_canvas.pack(side="left", fill="both", expand=True)
+        
+        # Bind mousewheel to canvas for scrolling
+        def _on_mousewheel(event):
+            self.main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        def _bind_to_mousewheel(event):
+            self.main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        def _unbind_from_mousewheel(event):
+            self.main_canvas.unbind_all("<MouseWheel>")
+        
+        self.main_canvas.bind('<Enter>', _bind_to_mousewheel)
+        self.main_canvas.bind('<Leave>', _unbind_from_mousewheel)
+        
+        # Now create all UI elements in the scrollable frame instead of root
         # Main title
-        title_frame = ttk.Frame(self.root)
+        title_frame = ttk.Frame(self.scrollable_frame)
         title_frame.pack(fill='x', padx=20, pady=10)
         
         title_label = ttk.Label(title_frame, text="🎭 Simple FaceSwap", font=('Arial', 24, 'bold'))
@@ -55,7 +96,7 @@ class SimpleFaceSwapGUI:
         subtitle_label.pack()
         
         # Progress bar and step indicator
-        progress_frame = ttk.Frame(self.root)
+        progress_frame = ttk.Frame(self.scrollable_frame)
         progress_frame.pack(fill='x', padx=20, pady=10)
         
         self.step_label = ttk.Label(progress_frame, text="", font=('Arial', 14, 'bold'))
@@ -65,7 +106,7 @@ class SimpleFaceSwapGUI:
         self.progress_bar.pack(pady=5)
         
         # Main content area with notebook for steps
-        self.notebook = ttk.Notebook(self.root)
+        self.notebook = ttk.Notebook(self.scrollable_frame)
         self.notebook.pack(fill='both', expand=True, padx=20, pady=10)
         
         # Step 1: Project Setup
@@ -91,7 +132,7 @@ class SimpleFaceSwapGUI:
         self.update_mode_structure()
         
         # Control buttons
-        control_frame = ttk.Frame(self.root)
+        control_frame = ttk.Frame(self.scrollable_frame)
         control_frame.pack(fill='x', padx=20, pady=10)
         
         self.prev_btn = ttk.Button(control_frame, text="← Previous", command=self.prev_step)
@@ -101,7 +142,7 @@ class SimpleFaceSwapGUI:
         self.next_btn.pack(side='right')
         
         # Status area
-        status_frame = ttk.Frame(self.root)
+        status_frame = ttk.Frame(self.scrollable_frame)
         status_frame.pack(fill='x', padx=20, pady=5)
         
         self.status_label = ttk.Label(status_frame, text="Ready to start", foreground='green')
@@ -293,7 +334,7 @@ Upload clear videos/images of the person whose face you want to USE AS REPLACEME
             clear_btn.pack(side='left', padx=5)
             
             # Always create a new listbox when mode changes
-            self.target_faces_listbox_simple = tk.Listbox(target_frame, height=12)
+            self.target_faces_listbox_simple = tk.Listbox(target_frame, height=8)
             self.target_faces_listbox_simple.pack(fill='both', expand=True, pady=5)
             
             scrollbar_simple = ttk.Scrollbar(target_frame, orient="vertical", command=self.target_faces_listbox_simple.yview)
@@ -341,7 +382,7 @@ Upload clear videos/images of the person whose face you want to REMOVE/REPLACE:"
             clear_btn.pack(side='left', padx=5)
             
             # Always create a new listbox when mode changes
-            self.source_listbox = tk.Listbox(source_frame, height=12)
+            self.source_listbox = tk.Listbox(source_frame, height=8)
             self.source_listbox.pack(fill='both', expand=True, pady=5)
             
             scrollbar1 = ttk.Scrollbar(source_frame, orient="vertical", command=self.source_listbox.yview)
@@ -408,7 +449,7 @@ Add your content files below (where faces will be REPLACED):"""
             clear_convert_btn.pack(side='left', padx=5)
             
             # Always create a new listbox when mode changes
-            self.convert_listbox_simple = tk.Listbox(convert_frame, height=12)
+            self.convert_listbox_simple = tk.Listbox(convert_frame, height=8)
             self.convert_listbox_simple.pack(fill='both', expand=True, pady=5)
             
             scrollbar_convert = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox_simple.yview)
@@ -456,7 +497,7 @@ Note: This is separate from the content you want to convert in Step 4."""
             clear_target_btn.pack(side='left', padx=5)
             
             # Always create a new listbox when mode changes
-            self.target_faces_listbox = tk.Listbox(target_faces_frame, height=12)
+            self.target_faces_listbox = tk.Listbox(target_faces_frame, height=8)
             self.target_faces_listbox.pack(fill='both', expand=True, pady=5)
             
             scrollbar_target = ttk.Scrollbar(target_faces_frame, orient="vertical", command=self.target_faces_listbox.yview)
@@ -510,7 +551,7 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
                   command=lambda: self.clear_files('convert'))
         clear_convert_btn.pack(side='left', padx=5)
         
-        self.convert_listbox = tk.Listbox(convert_frame, height=12)
+        self.convert_listbox = tk.Listbox(convert_frame, height=8)
         self.convert_listbox.pack(fill='both', expand=True, pady=5)
         
         scrollbar3 = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox.yview)
@@ -559,7 +600,7 @@ You can monitor progress below. Training can take 12-48+ hours depending on your
         self.detail_progress.pack(pady=5)
         
         # Log output
-        self.log_text = scrolledtext.ScrolledText(progress_frame, height=15, width=80)
+        self.log_text = scrolledtext.ScrolledText(progress_frame, height=10, width=80)
         self.log_text.pack(fill='both', expand=True, pady=5)
         
     def setup_step6(self):
@@ -597,7 +638,7 @@ You can also view training progress and model information below."""
         new_project_btn.pack(side='left', padx=5)
         
         # Results info
-        self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
+        self.results_text = scrolledtext.ScrolledText(results_frame, height=10, width=80)
         self.results_text.pack(fill='both', expand=True, pady=5)
         
     def update_step_display(self):
