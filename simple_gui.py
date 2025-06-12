@@ -776,23 +776,42 @@ You can also view training progress and model information below."""
                 
     def update_listbox(self, listbox: tk.Listbox, files: List[str]):
         """Update listbox with file list"""
-        listbox.delete(0, tk.END)
-        for file in files:
-            listbox.insert(tk.END, os.path.basename(file))
+        if listbox is None:
+            return
+        try:
+            listbox.delete(0, tk.END)
+            for file in files:
+                listbox.insert(tk.END, os.path.basename(file))
+        except tk.TclError:
+            # Listbox might not exist yet
+            pass
             
     def clear_files(self, file_type: str):
         """Clear files from list"""
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        
         if file_type == 'source':
             self.source_files.clear()
-            self.update_listbox(self.source_listbox, self.source_files)
+            if hasattr(self, 'source_listbox'):
+                self.update_listbox(self.source_listbox, self.source_files)
+                
         elif file_type == 'target_faces':
             if hasattr(self, 'target_faces_files'):
                 self.target_faces_files.clear()
-                self.update_listbox(self.target_faces_listbox, self.target_faces_files)
+                # Update the appropriate listbox based on mode
+                if mode == "simple" and hasattr(self, 'target_faces_listbox_simple'):
+                    self.update_listbox(self.target_faces_listbox_simple, self.target_faces_files)
+                elif mode == "advanced" and hasattr(self, 'target_faces_listbox'):
+                    self.update_listbox(self.target_faces_listbox, self.target_faces_files)
+                    
         elif file_type == 'convert':
             if hasattr(self, 'convert_files'):
                 self.convert_files.clear()
-                self.update_listbox(self.convert_listbox, self.convert_files)
+                # Update the appropriate listbox based on mode
+                if mode == "simple" and hasattr(self, 'convert_listbox_simple'):
+                    self.update_listbox(self.convert_listbox_simple, self.convert_files)
+                elif mode == "advanced" and hasattr(self, 'convert_listbox'):
+                    self.update_listbox(self.convert_listbox, self.convert_files)
             
     def start_processing(self):
         """Start the automated processing"""
@@ -1146,13 +1165,23 @@ You can find your face-swapped videos/images in the converted_output folder.
         
         # Clear UI elements
         self.project_var.set("")
-        self.source_listbox.delete(0, tk.END)
-        if hasattr(self, 'target_faces_listbox'):
-            self.target_faces_listbox.delete(0, tk.END)
-        if hasattr(self, 'convert_listbox'):
-            self.convert_listbox.delete(0, tk.END)
-        self.log_text.delete(1.0, tk.END)
-        self.results_text.delete(1.0, tk.END)
+        
+        # Clear all possible listboxes safely
+        for listbox_name in ['source_listbox', 'target_faces_listbox', 'target_faces_listbox_simple', 
+                           'convert_listbox', 'convert_listbox_simple']:
+            if hasattr(self, listbox_name):
+                listbox = getattr(self, listbox_name)
+                try:
+                    listbox.delete(0, tk.END)
+                except (tk.TclError, AttributeError):
+                    pass
+                    
+        # Clear text areas
+        try:
+            self.log_text.delete(1.0, tk.END)
+            self.results_text.delete(1.0, tk.END)
+        except (tk.TclError, AttributeError):
+            pass
         
         self.status_label.config(text="Ready for new project", foreground='green')
         
