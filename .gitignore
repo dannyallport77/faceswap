@@ -18,6 +18,19 @@
 !/tools.py
 !/update_deps.py
 
+# Custom additions
+!FIX_SUMMARY.md
+!MODEL_DOWNLOAD_COMPLETE.md
+!SIMPLE_GUI_README.md
+!WORKFLOW_GUIDE.md
+!README_CUSTOM.md
+!simple_gui.py
+!launch_simple.py
+!launch_simple.sh
+!create_demo_project.py
+!create_demo_simple.py
+!test_simple_gui_fixes.py
+
 # Support files
 !/.github/
 !/.github/workflows/
@@ -48,6 +61,10 @@
 !plugins/**/*.py
 !scripts/
 !scripts/*.py
+!scripts/download_cv2_dnn.py
+!scripts/download_models.py
+!scripts/model_summary.py
+!scripts/test_models.py
 !tools/
 !tools/**/
 !tools/**/*.py

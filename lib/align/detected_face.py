@@ -282,7 +282,7 @@ class DetectedFace():
         combined = np.concatenate(valid, axis=-1)
         self._training_masks = (compress(combined), combined.shape)
 
-    def get_training_masks(self) -> np.ndarray | None:
+    def get_training_masks(self) -> T.Union[np.ndarray, None]:
         """ Obtain the decompressed combined training masks.
 
         Returns

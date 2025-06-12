@@ -424,7 +424,7 @@ def _file_handler(loglevel,
     return handler
 
 
-def _stream_handler(loglevel: int, is_gui: bool) -> logging.StreamHandler | TqdmHandler:
+def _stream_handler(loglevel: int, is_gui: bool) -> T.Union[logging.StreamHandler, TqdmHandler]:
     """ Add a stream handler for the current Faceswap session. The stream handler will only ever
     output at a maximum of VERBOSE level to avoid spamming the console.
 

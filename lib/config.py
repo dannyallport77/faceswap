@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 import textwrap
+import typing as T
 
 from collections import OrderedDict
 from configparser import ConfigParser
@@ -24,7 +25,7 @@ OrderedDictSectionType = OrderedDict[str, "ConfigSection"]
 OrderedDictItemType = OrderedDict[str, "ConfigItem"]
 
 logger = logging.getLogger(__name__)
-ConfigValueType = bool | int | float | list[str] | str | None
+ConfigValueType = T.Union[bool, int, float, list[str], str, None]
 
 
 @dataclass
@@ -54,11 +55,11 @@ class ConfigItem:
     helptext: str
     datatype: type
     rounding: int
-    min_max: tuple[int, int] | tuple[float, float] | None
-    choices: str | list[str]
+    min_max: T.Union[tuple[int, int], tuple[float, float], None]
+    choices: T.Union[str, list[str]]
     gui_radio: bool
     fixed: bool
-    group: str | None
+    group: T.Union[str, None]
 
 
 @dataclass
@@ -78,7 +79,7 @@ class ConfigSection:
 
 class FaceswapConfig():
     """ Config Items """
-    def __init__(self, section: str | None, configfile: str | None = None) -> None:
+    def __init__(self, section: T.Union[str, None], configfile: T.Union[str, None] = None) -> None:
         """ Init Configuration
 
         Parameters
@@ -262,7 +263,7 @@ class FaceswapConfig():
                      raw_option, retval, section, option)
         return retval
 
-    def _get_config_file(self, configfile: str | None) -> str:
+    def _get_config_file(self, configfile: T.Union[str, None]) -> str:
         """ Return the config file from the calling folder or the provided file
 
         Parameters
@@ -303,17 +304,17 @@ class FaceswapConfig():
         self.defaults[title] = ConfigSection(helptext=info, items=OrderedDict())
 
     def add_item(self,
-                 section: str | None = None,
-                 title: str | None = None,
+                 section: T.Union[str, None] = None,
+                 title: T.Union[str, None] = None,
                  datatype: type = str,
                  default: ConfigValueType = None,
-                 info: str | None = None,
-                 rounding: int | None = None,
-                 min_max: tuple[int, int] | tuple[float, float] | None = None,
-                 choices: str | list[str] | None = None,
+                 info: T.Union[str, None] = None,
+                 rounding: T.Union[int, None] = None,
+                 min_max: T.Union[tuple[int, int], tuple[float, float], None] = None,
+                 choices: T.Union[str, list[str], None] = None,
                  gui_radio: bool = False,
                  fixed: bool = True,
-                 group: str | None = None) -> None:
+                 group: T.Union[str, None] = None) -> None:
         """ Add a default item to a config section
 
             For int or float values, rounding and min_max must be set
@@ -376,10 +377,10 @@ class FaceswapConfig():
     @classmethod
     def _expand_helptext(cls,
                          helptext: str,
-                         choices: str | list[str],
+                         choices: T.Union[str, list[str]],
                          default: ConfigValueType,
                          datatype: type,
-                         min_max: tuple[int, int] | tuple[float, float] | None,
+                         min_max: T.Union[tuple[int, int], tuple[float, float], None],
                          fixed: bool) -> str:
         """ Add extra helptext info from parameters """
         helptext += "\n"
@@ -431,7 +432,7 @@ class FaceswapConfig():
     def insert_config_section(self,
                               section: str,
                               helptext: str,
-                              config: ConfigParser | None = None) -> None:
+                              config: T.Union[ConfigParser, None] = None) -> None:
         """ Insert a section into the config
 
         Parameters
@@ -458,7 +459,7 @@ class FaceswapConfig():
                             item: str,
                             default: ConfigValueType,
                             option: ConfigItem,
-                            config: ConfigParser | None = None) -> None:
+                            config: T.Union[ConfigParser, None] = None) -> None:
         """ Insert an item into a config section
 
         Parameters

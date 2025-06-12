@@ -67,7 +67,7 @@ class FileFullPaths(_FullPaths):
     >>>        action=FileFullPaths,
     >>>        filetypes="video))"
     """
-    def __init__(self, *args, filetypes: str | None = None, **kwargs) -> None:
+    def __init__(self, *args, filetypes: T.Union[str, None] = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.filetypes = filetypes
 
@@ -109,7 +109,7 @@ class FilesFullPaths(FileFullPaths):
     >>>        filetypes="image",
     >>>        nargs="+"))
     """
-    def __init__(self, *args, filetypes: str | None = None, **kwargs) -> None:
+    def __init__(self, *args, filetypes: T.Union[str, None] = None, **kwargs) -> None:
         if kwargs.get("nargs", None) is None:
             opt = kwargs["option_strings"]
             raise ValueError(f"nargs must be provided for FilesFullPaths: {opt}")
@@ -247,8 +247,8 @@ class ContextFullPaths(FileFullPaths):
     # pylint:disable=too-many-arguments
     def __init__(self,
                  *args,
-                 filetypes: str | None = None,
-                 action_option: str | None = None,
+                 filetypes: T.Union[str, None] = None,
+                 action_option: T.Union[str, None] = None,
                  **kwargs) -> None:
         opt = kwargs["option_strings"]
         if kwargs.get("nargs", None) is not None:
@@ -379,8 +379,8 @@ class Slider(argparse.Action):
     """
     def __init__(self,
                  *args,
-                 min_max: tuple[int, int] | tuple[float, float] | None = None,
-                 rounding: int | None = None,
+                 min_max: T.Union[tuple[int, int], tuple[float, float], None] = None,
+                 rounding: T.Union[int, None] = None,
                  **kwargs) -> None:
         opt = kwargs["option_strings"]
         if kwargs.get("nargs", None) is not None:

@@ -46,7 +46,7 @@ class SmartFormatter(argparse.HelpFormatter):
                  prog: str,
                  indent_increment: int = 2,
                  max_help_position: int = 24,
-                 width: int | None = None) -> None:
+                 width: T.Union[int, None] = None) -> None:
         super().__init__(prog, indent_increment, max_help_position, width)
         self._whitespace_matcher_limited = re.compile(r'[ \r\f\v]+', re.ASCII)
 
@@ -104,7 +104,7 @@ class FaceSwapArgs():
         The description for the given command. Default: "default"
     """
     def __init__(self,
-                 subparser: argparse._SubParsersAction | None,
+                 subparser: T.Union[argparse._SubParsersAction, None],
                  command: str,
                  description: str = "default") -> None:
         self.global_arguments = self._get_global_arguments()

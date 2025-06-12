@@ -87,11 +87,19 @@ class AppleSiliconStats(_GPUStats):
             If the Tensorflow library could not be successfully initialized
         """
         try:
-            meminfo = tf.config.experimental.get_memory_info('GPU:0')
             devices = tf.config.list_logical_devices()
-            self._log("debug",
-                      f"Tensorflow initialization test: (mem_info: {meminfo}, devices: {devices}")
-        except RuntimeError as err:
+            gpu_devices = [d for d in devices if d.device_type == 'GPU']
+            if gpu_devices:
+                meminfo = tf.config.experimental.get_memory_info('GPU:0')
+                self._log("debug",
+                          f"Tensorflow initialization test: (mem_info: {meminfo}, devices: {devices}")
+            else:
+                self._log("debug", f"No GPU devices found. Available devices: {devices}")
+        except (RuntimeError, ValueError) as err:
+            self._log("warning", f"GPU initialization failed, falling back to CPU: {str(err)}")
+            # Don't raise the error, just log it and continue
+            return
+        except Exception as err:
             msg = ("An unhandled exception occured initializing the device via Tensorflow "
                    f"Library. Original error: {str(err)}")
             raise FaceswapError(msg) from err
