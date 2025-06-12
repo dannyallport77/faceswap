@@ -23,39 +23,6 @@ import time
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-class ToolTip:
-    """Create a tooltip for a given widget"""
-    def __init__(self, widget, text='widget info'):
-        self.widget = widget
-        self.text = text
-        self.widget.bind("<Enter>", self.enter)
-        self.widget.bind("<Leave>", self.leave)
-        self.tooltip_window = None
-
-    def enter(self, event=None):
-        """Mouse enters widget"""
-        if self.tooltip_window or not self.text:
-            return
-        x, y, cx, cy = self.widget.bbox("insert") if hasattr(self.widget, 'bbox') else (0, 0, 0, 0)
-        x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 20
-        
-        # Create tooltip window
-        self.tooltip_window = tw = tk.Toplevel(self.widget)
-        tw.wm_overrideredirect(True)
-        tw.wm_geometry("+%d+%d" % (x, y))
-        
-        label = tk.Label(tw, text=self.text, justify='left',
-                        background="#ffffe0", relief='solid', borderwidth=1,
-                        font=("Arial", "10", "normal"), wraplength=300)
-        label.pack(ipadx=1)
-
-    def leave(self, event=None):
-        """Mouse leaves widget"""
-        if self.tooltip_window:
-            self.tooltip_window.destroy()
-        self.tooltip_window = None
-
 class SimpleFaceSwapGUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -93,16 +60,13 @@ class SimpleFaceSwapGUI:
         
         self.step_label = ttk.Label(progress_frame, text="", font=('Arial', 14, 'bold'))
         self.step_label.pack()
-        ToolTip(self.step_label, "Shows your current step in the face-swapping process")
         
         self.progress_bar = ttk.Progressbar(progress_frame, length=400, mode='determinate')
         self.progress_bar.pack(pady=5)
-        ToolTip(self.progress_bar, "Visual indicator of your overall progress through all steps")
         
         # Main content area with notebook for steps
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=20, pady=10)
-        ToolTip(self.notebook, "Click on tabs to navigate between different steps of the face-swapping process")
         
         # Step 1: Project Setup
         self.setup_step1()
@@ -132,11 +96,9 @@ class SimpleFaceSwapGUI:
         
         self.prev_btn = ttk.Button(control_frame, text="← Previous", command=self.prev_step)
         self.prev_btn.pack(side='left')
-        ToolTip(self.prev_btn, "Go back to the previous step in the workflow")
         
         self.next_btn = ttk.Button(control_frame, text="Next →", command=self.next_step)
         self.next_btn.pack(side='right')
-        ToolTip(self.next_btn, "Proceed to the next step (validates current step first)")
         
         # Status area
         status_frame = ttk.Frame(self.root)
@@ -144,7 +106,6 @@ class SimpleFaceSwapGUI:
         
         self.status_label = ttk.Label(status_frame, text="Ready to start", foreground='green')
         self.status_label.pack()
-        ToolTip(self.status_label, "Shows the current status of your project and any important messages")
         
     def setup_step1(self):
         """Step 1: Project Setup"""
@@ -170,20 +131,16 @@ First, let's create a project folder to organize everything."""
         # Project selection
         project_frame = ttk.LabelFrame(frame, text="Project Folder", padding=10)
         project_frame.pack(fill='x', pady=10)
-        ToolTip(project_frame, "Your project folder will store all extracted faces, trained models, and converted results")
         
         self.project_var = tk.StringVar()
         project_entry = ttk.Entry(project_frame, textvariable=self.project_var, width=60)
         project_entry.pack(side='left', padx=5)
-        ToolTip(project_entry, "Path to your project folder - this will be created or selected using the buttons")
         
         browse_btn = ttk.Button(project_frame, text="Browse...", command=self.select_project_folder)
         browse_btn.pack(side='left', padx=5)
-        ToolTip(browse_btn, "Select an existing folder to use as your project directory")
         
         create_btn = ttk.Button(project_frame, text="Create New", command=self.create_new_project)
         create_btn.pack(side='left', padx=5)
-        ToolTip(create_btn, "Create a new project folder with all necessary subdirectories automatically")
         
         # Tips
         tips_frame = ttk.LabelFrame(frame, text="💡 Tips", padding=10)
@@ -198,7 +155,6 @@ First, let's create a project folder to organize everything."""
         # Mode selection
         mode_frame = ttk.LabelFrame(frame, text="Workflow Mode", padding=10)
         mode_frame.pack(fill='x', pady=10)
-        ToolTip(mode_frame, "Choose between simple face replacement or advanced bidirectional swapping")
         
         self.mode_var = tk.StringVar(value="simple")
         
@@ -206,7 +162,6 @@ First, let's create a project folder to organize everything."""
                                       variable=self.mode_var, value="simple", 
                                       command=self.on_mode_change)
         simple_radio.pack(anchor='w', pady=2)
-        ToolTip(simple_radio, "Replace any detected face with your target person. Only need training data for replacement face.")
         
         simple_desc = ttk.Label(mode_frame, text="   Replace any detected face with your target person (faster, easier)", 
                                font=('Arial', 10), foreground='gray')
@@ -216,7 +171,6 @@ First, let's create a project folder to organize everything."""
                                         variable=self.mode_var, value="advanced",
                                         command=self.on_mode_change)
         advanced_radio.pack(anchor='w', pady=2)
-        ToolTip(advanced_radio, "High-quality swaps between two specific people. Need training data for both faces.")
         
         advanced_desc = ttk.Label(mode_frame, text="   High-quality swaps between two specific people (slower, more setup)", 
                                  font=('Arial', 10), foreground='gray')
@@ -310,6 +264,11 @@ In Simple Mode:
 • Only need training data for the NEW FACE (the replacement)
 • Much faster setup and processing
 
+⚠️ MINIMUM REQUIREMENTS:
+• At least 25 training images (FaceSwap requirement)
+• Recommended: 50-500+ images for best quality
+• Use videos for more variety (different angles/expressions)
+
 Upload clear videos/images of the person whose face you want to USE AS REPLACEMENT:"""
             
             ttk.Label(self.step2_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
@@ -317,7 +276,6 @@ Upload clear videos/images of the person whose face you want to USE AS REPLACEME
             # Target person training
             target_frame = ttk.LabelFrame(self.step2_frame, text="🎭 NEW FACE Training Material (Face to PUT ON others)", padding=10)
             target_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(target_frame, "Add videos/images of the person whose face will be IMPOSED ON others")
             
             buttons_frame = ttk.Frame(target_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -325,22 +283,18 @@ Upload clear videos/images of the person whose face you want to USE AS REPLACEME
             add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('target_faces', 'video'))
             add_video_btn.pack(side='left', padx=5)
-            ToolTip(add_video_btn, "Add videos containing the NEW FACE (the face you want to put on others)")
             
             add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('target_faces', 'images'))
             add_images_btn.pack(side='left', padx=5)
-            ToolTip(add_images_btn, "Add images containing the NEW FACE (the face you want to put on others)")
             
             clear_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('target_faces'))
             clear_btn.pack(side='left', padx=5)
-            ToolTip(clear_btn, "Remove all NEW FACE training files")
             
             # Always create a new listbox when mode changes
             self.target_faces_listbox_simple = tk.Listbox(target_frame, height=12)
             self.target_faces_listbox_simple.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.target_faces_listbox_simple, "Training material for the NEW FACE that will be PUT ON others")
             
             scrollbar_simple = ttk.Scrollbar(target_frame, orient="vertical", command=self.target_faces_listbox_simple.yview)
             scrollbar_simple.pack(side="right", fill="y")
@@ -370,7 +324,6 @@ Upload clear videos/images of the person whose face you want to REMOVE/REPLACE:"
             # Person A training
             source_frame = ttk.LabelFrame(self.step2_frame, text="🚫 ORIGINAL FACE Training Material (Face to REMOVE)", padding=10)
             source_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(source_frame, "Add videos or images containing the face that will be REMOVED/REPLACED")
             
             buttons_frame = ttk.Frame(source_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -378,22 +331,18 @@ Upload clear videos/images of the person whose face you want to REMOVE/REPLACE:"
             add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('source', 'video'))
             add_video_btn.pack(side='left', padx=5)
-            ToolTip(add_video_btn, "Add videos containing the ORIGINAL FACE (the face you want to remove)")
             
             add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('source', 'images'))
             add_images_btn.pack(side='left', padx=5)
-            ToolTip(add_images_btn, "Add images containing the ORIGINAL FACE (the face you want to remove)")
             
             clear_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('source'))
             clear_btn.pack(side='left', padx=5)
-            ToolTip(clear_btn, "Remove all ORIGINAL FACE training files")
             
             # Always create a new listbox when mode changes
             self.source_listbox = tk.Listbox(source_frame, height=12)
             self.source_listbox.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.source_listbox, "Training material for the ORIGINAL FACE that will be REMOVED")
             
             scrollbar1 = ttk.Scrollbar(source_frame, orient="vertical", command=self.source_listbox.yview)
             scrollbar1.pack(side="right", fill="y")
@@ -442,7 +391,6 @@ Add your content files below (where faces will be REPLACED):"""
             # Convert content for simple mode
             convert_frame = ttk.LabelFrame(self.step3_frame, text="📺 Content Where Faces Will Be REPLACED", padding=10)
             convert_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(convert_frame, "Add videos/images where ALL faces will be REPLACED with your NEW FACE")
             
             buttons_frame = ttk.Frame(convert_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -450,22 +398,18 @@ Add your content files below (where faces will be REPLACED):"""
             convert_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('convert', 'video'))
             convert_video_btn.pack(side='left', padx=5)
-            ToolTip(convert_video_btn, "Add videos where ALL faces will be REPLACED with your NEW FACE")
             
             convert_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('convert', 'images'))
             convert_images_btn.pack(side='left', padx=5)
-            ToolTip(convert_images_btn, "Add images where ALL faces will be REPLACED with your NEW FACE")
             
             clear_convert_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('convert'))
             clear_convert_btn.pack(side='left', padx=5)
-            ToolTip(clear_convert_btn, "Remove all content files")
             
             # Always create a new listbox when mode changes
             self.convert_listbox_simple = tk.Listbox(convert_frame, height=12)
             self.convert_listbox_simple.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.convert_listbox_simple, "Content where ALL detected faces will be REPLACED with your NEW FACE")
             
             scrollbar_convert = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox_simple.yview)
             scrollbar_convert.pack(side="right", fill="y")
@@ -495,7 +439,6 @@ Note: This is separate from the content you want to convert in Step 4."""
             # Person B training
             target_faces_frame = ttk.LabelFrame(self.step3_frame, text="🎭 NEW FACE Training Material (Face to PUT ON others)", padding=10)
             target_faces_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(target_faces_frame, "Add videos/images of the NEW FACE - the face that will REPLACE the original")
             
             buttons_frame = ttk.Frame(target_faces_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -503,22 +446,18 @@ Note: This is separate from the content you want to convert in Step 4."""
             target_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('target_faces', 'video'))
             target_video_btn.pack(side='left', padx=5)
-            ToolTip(target_video_btn, "Add videos containing the NEW FACE (the face you want to put on others)")
             
             target_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('target_faces', 'images'))
             target_images_btn.pack(side='left', padx=5)
-            ToolTip(target_images_btn, "Add images containing the NEW FACE (the face you want to put on others)")
             
             clear_target_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('target_faces'))
             clear_target_btn.pack(side='left', padx=5)
-            ToolTip(clear_target_btn, "Remove all NEW FACE training files")
             
             # Always create a new listbox when mode changes
             self.target_faces_listbox = tk.Listbox(target_faces_frame, height=12)
             self.target_faces_listbox.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.target_faces_listbox, "Training material for the NEW FACE that will REPLACE the original face")
             
             scrollbar_target = ttk.Scrollbar(target_faces_frame, orient="vertical", command=self.target_faces_listbox.yview)
             scrollbar_target.pack(side="right", fill="y")
@@ -555,7 +494,6 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         # Convert content
         convert_frame = ttk.LabelFrame(frame, text="📺 Content Where Faces Will Be REPLACED", padding=10)
         convert_frame.pack(fill='both', expand=True, pady=10)
-        ToolTip(convert_frame, "Add the videos/images where ORIGINAL faces will be REPLACED with NEW faces")
         
         buttons_frame3 = ttk.Frame(convert_frame)
         buttons_frame3.pack(fill='x', pady=5)
@@ -563,21 +501,17 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         convert_video_btn = ttk.Button(buttons_frame3, text="Add Video(s)", 
                   command=lambda: self.add_files('convert', 'video'))
         convert_video_btn.pack(side='left', padx=5)
-        ToolTip(convert_video_btn, "Add videos where ORIGINAL faces will be REPLACED with NEW faces")
         
         convert_images_btn = ttk.Button(buttons_frame3, text="Add Images", 
                   command=lambda: self.add_files('convert', 'images'))
         convert_images_btn.pack(side='left', padx=5)
-        ToolTip(convert_images_btn, "Add images where ORIGINAL faces will be REPLACED with NEW faces")
         
         clear_convert_btn = ttk.Button(buttons_frame3, text="Clear All", 
                   command=lambda: self.clear_files('convert'))
         clear_convert_btn.pack(side='left', padx=5)
-        ToolTip(clear_convert_btn, "Remove all content files from the list")
         
         self.convert_listbox = tk.Listbox(convert_frame, height=12)
         self.convert_listbox.pack(fill='both', expand=True, pady=5)
-        ToolTip(self.convert_listbox, "These files will have ORIGINAL faces REPLACED with NEW faces")
         
         scrollbar3 = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox.yview)
         scrollbar3.pack(side="right", fill="y")
@@ -609,30 +543,24 @@ You can monitor progress below. Training can take 12-48+ hours depending on your
         self.start_btn = ttk.Button(controls_frame, text="🚀 Start Processing", 
                                    command=self.start_processing, style='Accent.TButton')
         self.start_btn.pack(side='left', padx=5)
-        ToolTip(self.start_btn, "Begin the automated face-swapping process. This will extract faces, train the model, and convert your content.")
         
         self.stop_btn = ttk.Button(controls_frame, text="⏹ Stop", 
                                   command=self.stop_processing, state='disabled')
         self.stop_btn.pack(side='left', padx=5)
-        ToolTip(self.stop_btn, "Stop the current processing operation (active during processing)")
         
         # Progress details
         progress_frame = ttk.LabelFrame(frame, text="Processing Progress", padding=10)
         progress_frame.pack(fill='both', expand=True, pady=10)
-        ToolTip(progress_frame, "Monitor the progress of face extraction, model training, and content conversion")
         
         self.progress_detail = ttk.Label(progress_frame, text="Ready to start processing")
         self.progress_detail.pack(pady=5)
-        ToolTip(self.progress_detail, "Shows which step is currently being processed")
         
         self.detail_progress = ttk.Progressbar(progress_frame, length=500, mode='indeterminate')
         self.detail_progress.pack(pady=5)
-        ToolTip(self.detail_progress, "Visual indicator showing that processing is active")
         
         # Log output
         self.log_text = scrolledtext.ScrolledText(progress_frame, height=15, width=80)
         self.log_text.pack(fill='both', expand=True, pady=5)
-        ToolTip(self.log_text, "Detailed log output showing the progress of extraction, training, and conversion operations")
         
     def setup_step6(self):
         """Step 6: Results"""
@@ -652,7 +580,6 @@ You can also view training progress and model information below."""
         # Results controls
         results_frame = ttk.LabelFrame(frame, text="Results", padding=10)
         results_frame.pack(fill='both', expand=True, pady=10)
-        ToolTip(results_frame, "Access your completed face-swapped content and project information")
         
         buttons_frame = ttk.Frame(results_frame)
         buttons_frame.pack(fill='x', pady=5)
@@ -660,22 +587,18 @@ You can also view training progress and model information below."""
         results_btn = ttk.Button(buttons_frame, text="📁 Open Results Folder", 
                   command=self.open_results_folder)
         results_btn.pack(side='left', padx=5)
-        ToolTip(results_btn, "Open the folder containing your face-swapped videos and images")
         
         project_btn = ttk.Button(buttons_frame, text="🎬 Open Project Folder", 
                   command=self.open_project_folder)
         project_btn.pack(side='left', padx=5)
-        ToolTip(project_btn, "Open the main project folder showing all extracted faces, models, and results")
         
         new_project_btn = ttk.Button(buttons_frame, text="🔄 Start New Project", 
                   command=self.new_project)
         new_project_btn.pack(side='left', padx=5)
-        ToolTip(new_project_btn, "Clear all current settings and start a fresh face-swapping project")
         
         # Results info
         self.results_text = scrolledtext.ScrolledText(results_frame, height=15, width=80)
         self.results_text.pack(fill='both', expand=True, pady=5)
-        ToolTip(self.results_text, "Summary of your completed project including file counts and output locations")
         
     def update_step_display(self):
         """Update the progress bar and step indicator"""
@@ -943,6 +866,74 @@ You can also view training progress and model information below."""
                 elif mode == "advanced" and hasattr(self, 'convert_listbox'):
                     self.update_listbox(self.convert_listbox, self.convert_files)
             
+    def clean_input_files(self, file_list: List[str]) -> List[str]:
+        """Clean input files by removing problematic system files"""
+        cleaned_files = []
+        removed_files = []
+        
+        for file_path in file_list:
+            filename = os.path.basename(file_path)
+            
+            # Check for problematic file patterns
+            if (filename.startswith('._') or  # macOS metadata files
+                filename.startswith('.DS_Store') or  # macOS directory metadata  
+                filename.startswith('Thumbs.db') or  # Windows thumbnail cache
+                filename.startswith('.') or  # Other hidden files
+                'copy' in filename.lower() or  # Files with "copy" often have encoding issues
+                not os.path.exists(file_path) or  # File doesn't exist
+                os.path.getsize(file_path) == 0):  # Empty file
+                removed_files.append(filename)
+                continue
+                
+            # Check if file is readable
+            try:
+                with open(file_path, 'rb') as f:
+                    f.read(1)  # Try to read first byte
+                cleaned_files.append(file_path)
+            except (OSError, IOError, PermissionError):
+                removed_files.append(filename)
+                continue
+        
+        if removed_files:
+            self.log_message(f"🧹 Cleaned {len(removed_files)} problematic files: {', '.join(removed_files[:3])}{'...' if len(removed_files) > 3 else ''}")
+            
+        self.log_message(f"📁 {len(cleaned_files)} valid files ready for processing")
+        return cleaned_files
+
+    def clean_temp_directory(self, temp_dir: str):
+        """Clean temporary directory of problematic system files"""
+        import os
+        
+        if not os.path.exists(temp_dir):
+            return
+            
+        files_removed = []
+        try:
+            for filename in os.listdir(temp_dir):
+                file_path = os.path.join(temp_dir, filename)
+                
+                # Only remove specific problematic files, preserve important faceswap files
+                if (filename.startswith('._') and  # macOS metadata files
+                    not filename.endswith('.fsa') and  # But preserve alignment files even with ._ prefix
+                    not filename.endswith('.json')):  # And preserve other important files
+                    try:
+                        os.remove(file_path)
+                        files_removed.append(filename)
+                    except (OSError, IOError):
+                        pass  # Ignore errors removing problematic files
+                elif filename in ['.DS_Store', 'Thumbs.db']:  # Specific system files
+                    try:
+                        os.remove(file_path)
+                        files_removed.append(filename)
+                    except (OSError, IOError):
+                        pass
+        except (OSError, IOError):
+            # If we can't read the directory, skip cleaning
+            pass
+        
+        if files_removed:
+            self.log_message(f"🧹 Cleaned temp directory: removed {', '.join(files_removed)}")
+
     def start_processing(self):
         """Start the automated processing"""
         if not self.validate_all_inputs():
@@ -1035,16 +1026,36 @@ You can also view training progress and model information below."""
                     self.log_message(f"Extracting faces from content {i+1}/{len(self.convert_files)}: {os.path.basename(file)}")
                     self.extract_faces(file, source_output, "content_source")
                 
-                # Check face counts
-                source_count = len([f for f in os.listdir(source_output) if f.endswith('.png')])
-                target_count = len([f for f in os.listdir(target_output) if f.endswith('.png')])
+                # Check face counts (filter out metadata files)
+                source_count = len([f for f in os.listdir(source_output) 
+                                  if f.endswith('.png') and not f.startswith('._')])
+                target_count = len([f for f in os.listdir(target_output) 
+                                  if f.endswith('.png') and not f.startswith('._')])
                 
                 self.log_message(f"✅ Extraction complete: {source_count} faces from content, {target_count} NEW face training images")
                 
+                # Validate minimum requirements for FaceSwap training
                 if source_count == 0:
                     raise Exception("No faces found in content to convert. Please check your input files.")
-                if target_count < 20:
-                    self.log_message("⚠️ Warning: Less than 20 NEW face training images. Results may be poor. Consider adding more training material.")
+                
+                if target_count < 25:
+                    self.log_message(f"❌ TRAINING REQUIREMENT NOT MET: Only {target_count} NEW face images found.")
+                    self.log_message("🚫 FaceSwap requires minimum 25 images per side for training.")
+                    self.log_message("📝 SOLUTION: Add more images/videos of your NEW face (the face you want to impose).")
+                    self.log_message("💡 TIPS:")
+                    self.log_message("   • Use videos (extract more frames with different angles/expressions)")
+                    self.log_message("   • Add photos from different lighting conditions")
+                    self.log_message("   • Include various facial expressions and head angles")
+                    self.log_message("   • Aim for 50-500+ images for best results")
+                    raise Exception(f"Insufficient training material: {target_count} images < 25 minimum required")
+                elif target_count < 50:
+                    self.log_message(f"⚠️ LOW IMAGE COUNT: {target_count} NEW face images (minimum met but results may be limited)")
+                    self.log_message("📝 RECOMMENDATION: Add more images/videos for better quality results")
+                elif target_count < 250:
+                    self.log_message(f"⚠️ MODERATE IMAGE COUNT: {target_count} NEW face images (acceptable for basic results)")
+                    self.log_message("💡 For optimal results, aim for 250+ images")
+                else:
+                    self.log_message(f"✅ EXCELLENT: {target_count} NEW face images - great for high-quality training!")
                     
             else:
                 # Advanced mode: Extract both Person A and Person B
@@ -1066,16 +1077,51 @@ You can also view training progress and model information below."""
                     self.log_message(f"Processing NEW face file {i+1}/{len(self.target_faces_files)}: {os.path.basename(file)}")
                     self.extract_faces(file, target_output, "target")
                     
-                # Check face counts
-                source_count = len([f for f in os.listdir(source_output) if f.endswith('.png')])
-                target_count = len([f for f in os.listdir(target_output) if f.endswith('.png')])
+                # Check face counts (filter out metadata files)
+                source_count = len([f for f in os.listdir(source_output) 
+                                  if f.endswith('.png') and not f.startswith('._')])
+                target_count = len([f for f in os.listdir(target_output) 
+                                  if f.endswith('.png') and not f.startswith('._')])
                 
                 self.log_message(f"✅ Extraction complete: {source_count} ORIGINAL faces, {target_count} NEW faces")
                 
+                # Validate minimum requirements for FaceSwap training
+                failed_requirements = []
+                if source_count < 25:
+                    failed_requirements.append(f"ORIGINAL faces: {source_count} < 25 minimum")
+                if target_count < 25:
+                    failed_requirements.append(f"NEW faces: {target_count} < 25 minimum")
+                
+                if failed_requirements:
+                    self.log_message("❌ TRAINING REQUIREMENTS NOT MET:")
+                    for req in failed_requirements:
+                        self.log_message(f"   🚫 {req}")
+                    self.log_message("📝 SOLUTION: Add more images/videos for the insufficient face types.")
+                    self.log_message("💡 TIPS:")
+                    self.log_message("   • Use videos to extract more frames with different angles/expressions")
+                    self.log_message("   • Add photos from different lighting conditions") 
+                    self.log_message("   • Include various facial expressions and head angles")
+                    self.log_message("   • Aim for 50-500+ images per person for best results")
+                    raise Exception(f"Insufficient training material: {', '.join(failed_requirements)}")
+                
+                # Provide quality feedback for adequate amounts
+                warnings = []
                 if source_count < 50:
-                    self.log_message("⚠️ Warning: Less than 50 ORIGINAL face training images. Results may be poor.")
+                    warnings.append(f"ORIGINAL faces: {source_count} images (minimum met, basic quality)")
                 if target_count < 50:
-                    self.log_message("⚠️ Warning: Less than 50 NEW face training images. Results may be poor.")
+                    warnings.append(f"NEW faces: {target_count} images (minimum met, basic quality)")
+                    
+                if warnings:
+                    self.log_message("⚠️ LOW IMAGE COUNTS:")
+                    for warning in warnings:
+                        self.log_message(f"   📊 {warning}")
+                    self.log_message("📝 RECOMMENDATION: Add more images for better quality results")
+                
+                # Check for good amounts
+                if source_count >= 250 and target_count >= 250:
+                    self.log_message(f"✅ EXCELLENT: {source_count} ORIGINAL + {target_count} NEW faces - great for high-quality training!")
+                elif source_count >= 50 and target_count >= 50:
+                    self.log_message(f"✅ GOOD: {source_count} ORIGINAL + {target_count} NEW faces - sufficient for quality results")
                 
             # Step 3: Train model (same for both modes)
             self.update_progress("Training face-swapping model (this may take hours)...")
@@ -1115,58 +1161,76 @@ You can also view training progress and model information below."""
             
     def extract_faces(self, input_file: str, output_dir: str, face_type: str):
         """Extract faces from input file"""
-        self.log_message(f"Extracting {face_type} faces from: {os.path.basename(input_file)}")
-        
-        # Clean the input file first
-        cleaned_files = self.clean_input_files([input_file])
-        if not cleaned_files:
-            self.log_message(f"⚠️ Skipping {os.path.basename(input_file)} - file has issues")
-            return
+        try:
+            self.log_message(f"Extracting {face_type} faces from: {os.path.basename(input_file)}")
             
-        input_file = cleaned_files[0]  # Use cleaned file
-        
-        # Check if input is a single image file
-        image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
-        file_ext = os.path.splitext(input_file.lower())[1]
-        
-        if file_ext in image_extensions:
-            # For single images, create a temporary folder and copy the image
-            import shutil
-            temp_input_dir = os.path.join(os.path.dirname(output_dir), f"temp_input_{face_type}")
-            os.makedirs(temp_input_dir, exist_ok=True)
+            # Clean the input file first
+            cleaned_files = self.clean_input_files([input_file])
+            if not cleaned_files:
+                self.log_message(f"⚠️ Skipping {os.path.basename(input_file)} - file has issues")
+                return
+                
+            input_file = cleaned_files[0]  # Use cleaned file
             
-            # Copy image to temp folder
-            temp_image_path = os.path.join(temp_input_dir, os.path.basename(input_file))
-            shutil.copy2(input_file, temp_image_path)
+            # Check if input is a single image file
+            image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+            file_ext = os.path.splitext(input_file.lower())[1]
             
-            cmd = [
-                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
-                '-i', temp_input_dir,  # Use folder instead of single file
-                '-o', output_dir,
-                '-D', 's3fd',
-                '-A', 'fan', 
-                '-M', 'bisenet-fp'
-            ]
-            
-            try:
-                self.run_command(cmd)
-            finally:
-                # Clean up temp folder
+            if file_ext in image_extensions:
+                # For single images, create a temporary folder and copy the image
                 import shutil
-                if os.path.exists(temp_input_dir):
-                    shutil.rmtree(temp_input_dir)
-        else:
-            # For videos, use the file directly
-            cmd = [
-                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
-                '-i', input_file,
-                '-o', output_dir,
-                '-D', 's3fd',
-                '-A', 'fan', 
-                '-M', 'bisenet-fp'
-            ]
-            
-            self.run_command(cmd)
+                temp_input_dir = os.path.join(os.path.dirname(output_dir), f"temp_input_{face_type}")
+                os.makedirs(temp_input_dir, exist_ok=True)
+                
+                try:
+                    # Copy image to temp folder
+                    temp_image_path = os.path.join(temp_input_dir, os.path.basename(input_file))
+                    shutil.copy2(input_file, temp_image_path)
+                    
+                    # Clean the temp directory of any problematic system files that might have been created
+                    self.clean_temp_directory(temp_input_dir)
+                    
+                    cmd = [
+                        '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
+                        '-i', temp_input_dir,  # Use folder instead of single file
+                        '-o', output_dir,
+                        '-D', 's3fd',
+                        '-A', 'fan', 
+                        '-M', 'bisenet-fp'
+                    ]
+                    
+                    self.run_command(cmd)
+                    
+                    # Clean the output directory of any metadata files that might have been created
+                    self.clean_temp_directory(output_dir)
+                    
+                except Exception as e:
+                    self.log_message(f"⚠️ Error during extraction: {str(e)}")
+                    # Continue processing other files instead of failing completely
+                    
+                finally:
+                    # Clean up temp folder
+                    try:
+                        if os.path.exists(temp_input_dir):
+                            shutil.rmtree(temp_input_dir)
+                    except (OSError, IOError):
+                        pass  # Ignore cleanup errors
+            else:
+                # For videos, use the file directly
+                cmd = [
+                    '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
+                    '-i', input_file,
+                    '-o', output_dir,
+                    '-D', 's3fd',
+                    '-A', 'fan', 
+                    '-M', 'bisenet-fp'
+                ]
+                
+                self.run_command(cmd)
+                
+        except Exception as e:
+            self.log_message(f"❌ Failed to extract faces from {os.path.basename(input_file)}: {str(e)}")
+            # Log the error but continue processing other files
         
     def train_model(self, source_dir: str, target_dir: str, model_dir: str):
         """Train the face-swapping model"""
@@ -1178,7 +1242,7 @@ You can also view training progress and model information below."""
             '-B', target_dir, 
             '-m', model_dir,
             '-t', 'original',
-            '-bs', '16'
+            '-b', '16'
         ]
         
         self.run_command(cmd)
@@ -1202,6 +1266,9 @@ You can also view training progress and model information below."""
             temp_image_path = os.path.join(temp_input_dir, os.path.basename(input_file))
             shutil.copy2(input_file, temp_image_path)
             
+            # Clean the temp directory of any problematic system files that might have been created
+            self.clean_temp_directory(temp_input_dir)
+            
             # Create temp output folder
             temp_output_dir = os.path.join(os.path.dirname(output_dir), "temp_convert_output")
             os.makedirs(temp_output_dir, exist_ok=True)
@@ -1216,8 +1283,9 @@ You can also view training progress and model information below."""
             try:
                 self.run_command(cmd)
                 
-                # Move converted image to final output location
-                converted_files = [f for f in os.listdir(temp_output_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
+                # Move converted image to final output location (filter out metadata files)
+                converted_files = [f for f in os.listdir(temp_output_dir) 
+                                 if f.endswith(('.png', '.jpg', '.jpeg')) and not f.startswith('._')]
                 if converted_files:
                     src_path = os.path.join(temp_output_dir, converted_files[0])
                     base_name = os.path.splitext(os.path.basename(input_file))[0]
