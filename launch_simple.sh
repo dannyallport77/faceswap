@@ -9,7 +9,7 @@ cd "/Users/admin/Documents/faceswap/faceswap"
 
 # Activate conda environment and launch
 conda activate faceswap
-python launch_simple.py
+/Users/admin/micromamba/envs/faceswap/bin/python simple_gui.py
 
 echo "Simple FaceSwap closed."
 read -p "Press Enter to close this window..."

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Users/admin/micromamba/envs/faceswap/bin/python
 """
 Simple FaceSwap GUI - Step-by-Step Face Swapping
 
@@ -113,14 +113,18 @@ class SimpleFaceSwapGUI:
         # Step 3: Target Selection  
         self.setup_step3()
         
-        # Step 4: Content to Convert
-        self.setup_step4()
+        # Step 4: Content to Convert (only for Advanced Mode)
+        # This will be created dynamically based on mode
+        self.step4_frame = None
         
         # Step 5: Processing
         self.setup_step5()
         
         # Step 6: Results
         self.setup_step6()
+        
+        # Update tab titles and create Step 4 if needed
+        self.update_mode_structure()
         
         # Control buttons
         control_frame = ttk.Frame(self.root)
@@ -218,6 +222,24 @@ First, let's create a project folder to organize everything."""
                                  font=('Arial', 10), foreground='gray')
         advanced_desc.pack(anchor='w', padx=20)
         
+    def update_mode_structure(self):
+        """Update the GUI structure based on current mode (create/remove Step 4)"""
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        
+        if mode == "advanced":
+            # Advanced Mode: Create Step 4 if it doesn't exist
+            if self.step4_frame is None:
+                self.setup_step4()
+        else:
+            # Simple Mode: Remove Step 4 if it exists
+            if self.step4_frame is not None:
+                self.notebook.forget(self.step4_frame)
+                self.step4_frame.destroy()
+                self.step4_frame = None
+        
+        # Update tab titles after structure change
+        self.update_tab_titles()
+        
     def on_mode_change(self):
         """Handle mode change between simple and advanced"""
         mode = self.mode_var.get()
@@ -233,8 +255,30 @@ First, let's create a project folder to organize everything."""
             self.update_step2_content()
         if hasattr(self, 'step3_frame'):
             self.update_step3_content()
+        
+        # Update the mode structure (create/remove Step 4)
+        self.update_mode_structure()
             
         self.update_step_display()
+        
+    def update_tab_titles(self):
+        """Update tab titles based on current mode"""
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        
+        if mode == "simple":
+            # Simple Mode: Step 2 = NEW FACE Training, Step 3 = Content to Convert, Step 4 is skipped
+            if hasattr(self, 'step2_frame'):
+                self.notebook.tab(self.step2_frame, text="2. 🎭 NEW FACE Training")
+            if hasattr(self, 'step3_frame'):
+                self.notebook.tab(self.step3_frame, text="3. 📺 Content to Convert")
+        else:
+            # Advanced Mode: Step 2 = ORIGINAL FACE, Step 3 = NEW FACE Training, Step 4 = Content to Convert
+            if hasattr(self, 'step2_frame'):
+                self.notebook.tab(self.step2_frame, text="2. 🚫 ORIGINAL FACE Training")
+            if hasattr(self, 'step3_frame'):
+                self.notebook.tab(self.step3_frame, text="3. 🎭 NEW FACE Training")
+            if hasattr(self, 'step4_frame'):
+                self.notebook.tab(self.step4_frame, text="4. 📺 Content to Convert")
         
     def setup_step2(self):
         """Step 2: Training Data (changes based on mode)"""
@@ -255,25 +299,25 @@ First, let's create a project folder to organize everything."""
         
         if mode == "simple":
             # Simple mode: Only target person training
-            ttk.Label(self.step2_frame, text="Step 2: Target Person Training Data", 
+            ttk.Label(self.step2_frame, text="Step 2: New Face Training Data", 
                      font=('Arial', 16, 'bold')).pack(pady=10)
             
-            instructions = """Add training videos or images of the person whose face you want to USE as replacement.
+            instructions = """Add training videos or images of the person whose face you want to PUT ONTO others.
 
 In Simple Mode:
 • AI will detect ANY face in your content
-• Replace detected faces with your trained person
-• Only need training data for the replacement face
+• Replace all detected faces with your trained person's face
+• Only need training data for the NEW FACE (the replacement)
 • Much faster setup and processing
 
-Upload clear videos/images of your target person with multiple angles and expressions."""
+Upload clear videos/images of the person whose face you want to USE AS REPLACEMENT:"""
             
             ttk.Label(self.step2_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Target person training
-            target_frame = ttk.LabelFrame(self.step2_frame, text="Target Person Training Material", padding=10)
+            target_frame = ttk.LabelFrame(self.step2_frame, text="🎭 NEW FACE Training Material (Face to PUT ON others)", padding=10)
             target_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(target_frame, "Add videos/images of the person whose face will be used as replacement")
+            ToolTip(target_frame, "Add videos/images of the person whose face will be IMPOSED ON others")
             
             buttons_frame = ttk.Frame(target_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -281,48 +325,52 @@ Upload clear videos/images of your target person with multiple angles and expres
             add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('target_faces', 'video'))
             add_video_btn.pack(side='left', padx=5)
-            ToolTip(add_video_btn, "Add videos containing the target person's face for training")
+            ToolTip(add_video_btn, "Add videos containing the NEW FACE (the face you want to put on others)")
             
             add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('target_faces', 'images'))
             add_images_btn.pack(side='left', padx=5)
-            ToolTip(add_images_btn, "Add images containing the target person's face for training")
+            ToolTip(add_images_btn, "Add images containing the NEW FACE (the face you want to put on others)")
             
             clear_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('target_faces'))
             clear_btn.pack(side='left', padx=5)
-            ToolTip(clear_btn, "Remove all target person training files")
+            ToolTip(clear_btn, "Remove all NEW FACE training files")
             
-            if not hasattr(self, 'target_faces_listbox_simple'):
-                self.target_faces_listbox_simple = tk.Listbox(target_frame, height=12)
+            # Always create a new listbox when mode changes
+            self.target_faces_listbox_simple = tk.Listbox(target_frame, height=12)
             self.target_faces_listbox_simple.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.target_faces_listbox_simple, "Training material for the target person whose face will replace others")
+            ToolTip(self.target_faces_listbox_simple, "Training material for the NEW FACE that will be PUT ON others")
             
             scrollbar_simple = ttk.Scrollbar(target_frame, orient="vertical", command=self.target_faces_listbox_simple.yview)
             scrollbar_simple.pack(side="right", fill="y")
             self.target_faces_listbox_simple.configure(yscrollcommand=scrollbar_simple.set)
             
+            # Update with existing files
+            if hasattr(self, 'target_faces_files'):
+                self.update_listbox(self.target_faces_listbox_simple, self.target_faces_files)
+            
         else:
             # Advanced mode: Person A training
-            ttk.Label(self.step2_frame, text="Step 2: Person A Training Data", 
+            ttk.Label(self.step2_frame, text="Step 2: Original Face Training Data", 
                      font=('Arial', 16, 'bold')).pack(pady=10)
             
-            instructions = """Add training videos or images of Person A (the person whose face will be REPLACED).
+            instructions = """Add training videos or images of the person whose face will be REMOVED/REPLACED.
 
 In Advanced Mode:
-• AI learns both Person A and Person B faces specifically
-• Higher quality, more accurate swaps
-• Can do bidirectional swaps (A→B and B→A)
-• Requires training data for both people
+• AI learns both faces specifically for high-quality swaps
+• Can do bidirectional swaps (Original ↔ New Face)
+• Requires training data for BOTH the original and new faces
+• Higher quality but more setup required
 
-Upload clear videos/images of Person A with multiple angles and expressions."""
+Upload clear videos/images of the person whose face you want to REMOVE/REPLACE:"""
             
             ttk.Label(self.step2_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Person A training
-            source_frame = ttk.LabelFrame(self.step2_frame, text="Person A Training Material", padding=10)
+            source_frame = ttk.LabelFrame(self.step2_frame, text="🚫 ORIGINAL FACE Training Material (Face to REMOVE)", padding=10)
             source_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(source_frame, "Add videos or images containing Person A's face for training")
+            ToolTip(source_frame, "Add videos or images containing the face that will be REMOVED/REPLACED")
             
             buttons_frame = ttk.Frame(source_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -330,34 +378,40 @@ Upload clear videos/images of Person A with multiple angles and expressions."""
             add_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('source', 'video'))
             add_video_btn.pack(side='left', padx=5)
-            ToolTip(add_video_btn, "Add videos containing Person A's face for training")
+            ToolTip(add_video_btn, "Add videos containing the ORIGINAL FACE (the face you want to remove)")
             
             add_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('source', 'images'))
             add_images_btn.pack(side='left', padx=5)
-            ToolTip(add_images_btn, "Add images containing Person A's face for training")
+            ToolTip(add_images_btn, "Add images containing the ORIGINAL FACE (the face you want to remove)")
             
             clear_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('source'))
             clear_btn.pack(side='left', padx=5)
-            ToolTip(clear_btn, "Remove all Person A training files")
+            ToolTip(clear_btn, "Remove all ORIGINAL FACE training files")
             
-            if not hasattr(self, 'source_listbox'):
-                self.source_listbox = tk.Listbox(source_frame, height=12)
+            # Always create a new listbox when mode changes
+            self.source_listbox = tk.Listbox(source_frame, height=12)
             self.source_listbox.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.source_listbox, "Training material for Person A whose face will be replaced")
+            ToolTip(self.source_listbox, "Training material for the ORIGINAL FACE that will be REMOVED")
             
             scrollbar1 = ttk.Scrollbar(source_frame, orient="vertical", command=self.source_listbox.yview)
             scrollbar1.pack(side="right", fill="y")
             self.source_listbox.configure(yscrollcommand=scrollbar1.set)
+            
+            # Update with existing files
+            if hasattr(self, 'source_files'):
+                self.update_listbox(self.source_listbox, self.source_files)
         
     def setup_step3(self):
         """Step 3: Content or Person B Training (changes based on mode)"""
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="3. Next Step")
         
-        # Dynamic content based on mode
+        # Store reference to the frame for tab title updates
         self.step3_frame = frame
+        
+        # Dynamic content based on mode
         self.update_step3_content()
         
     def update_step3_content(self):
@@ -376,19 +430,19 @@ Upload clear videos/images of Person A with multiple angles and expressions."""
             instructions = """Add the videos or images where you want to perform face swapping.
 
 In Simple Mode:
-• Any detected face will be replaced with your trained target person
-• You don't need to specify which person to replace
-• Works great for replacing faces with celebrities, yourself, etc.
+• Any detected face will be REPLACED with your NEW FACE from Step 2
+• You don't need to specify which person to replace - all faces get swapped
+• Works great for putting celebrities, yourself, etc. on any content
 • Much simpler than traditional face swapping
 
-Add your content files below:"""
+Add your content files below (where faces will be REPLACED):"""
             
             ttk.Label(self.step3_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Convert content for simple mode
-            convert_frame = ttk.LabelFrame(self.step3_frame, text="Content to Convert", padding=10)
+            convert_frame = ttk.LabelFrame(self.step3_frame, text="📺 Content Where Faces Will Be REPLACED", padding=10)
             convert_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(convert_frame, "Add videos/images where faces will be replaced with your target person")
+            ToolTip(convert_frame, "Add videos/images where ALL faces will be REPLACED with your NEW FACE")
             
             buttons_frame = ttk.Frame(convert_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -396,36 +450,40 @@ Add your content files below:"""
             convert_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('convert', 'video'))
             convert_video_btn.pack(side='left', padx=5)
-            ToolTip(convert_video_btn, "Add videos where faces should be replaced")
+            ToolTip(convert_video_btn, "Add videos where ALL faces will be REPLACED with your NEW FACE")
             
             convert_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('convert', 'images'))
             convert_images_btn.pack(side='left', padx=5)
-            ToolTip(convert_images_btn, "Add images where faces should be replaced")
+            ToolTip(convert_images_btn, "Add images where ALL faces will be REPLACED with your NEW FACE")
             
             clear_convert_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('convert'))
             clear_convert_btn.pack(side='left', padx=5)
             ToolTip(clear_convert_btn, "Remove all content files")
             
-            if not hasattr(self, 'convert_listbox_simple'):
-                self.convert_listbox_simple = tk.Listbox(convert_frame, height=12)
+            # Always create a new listbox when mode changes
+            self.convert_listbox_simple = tk.Listbox(convert_frame, height=12)
             self.convert_listbox_simple.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.convert_listbox_simple, "Content where any detected faces will be replaced with your target person")
+            ToolTip(self.convert_listbox_simple, "Content where ALL detected faces will be REPLACED with your NEW FACE")
             
             scrollbar_convert = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox_simple.yview)
             scrollbar_convert.pack(side="right", fill="y")
             self.convert_listbox_simple.configure(yscrollcommand=scrollbar_convert.set)
             
+            # Update with existing files
+            if hasattr(self, 'convert_files'):
+                self.update_listbox(self.convert_listbox_simple, self.convert_files)
+            
         else:
             # Advanced mode: Person B training (same as before)
-            ttk.Label(self.step3_frame, text="Step 3: Person B Training Data", 
+            ttk.Label(self.step3_frame, text="Step 3: New Face Training Data", 
                      font=('Arial', 16, 'bold')).pack(pady=10)
             
-            instructions = """Add training videos or images of Person B (the REPLACEMENT face).
+            instructions = """Add training videos or images of the person whose face will REPLACE the original face.
 
-This is ONLY for training the AI to learn Person B's face. You need:
-• Clear, well-lit faces of Person B
+This is ONLY for training the AI to learn the NEW FACE. You need:
+• Clear, well-lit faces of the person whose face you want to PUT ON others
 • Multiple angles and expressions  
 • At least 300-500 faces for good results
 • Videos work better than individual photos
@@ -435,9 +493,9 @@ Note: This is separate from the content you want to convert in Step 4."""
             ttk.Label(self.step3_frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
             
             # Person B training
-            target_faces_frame = ttk.LabelFrame(self.step3_frame, text="Person B Training Material", padding=10)
+            target_faces_frame = ttk.LabelFrame(self.step3_frame, text="🎭 NEW FACE Training Material (Face to PUT ON others)", padding=10)
             target_faces_frame.pack(fill='both', expand=True, pady=10)
-            ToolTip(target_faces_frame, "Add videos/images of Person B - the face that will REPLACE Person A")
+            ToolTip(target_faces_frame, "Add videos/images of the NEW FACE - the face that will REPLACE the original")
             
             buttons_frame = ttk.Frame(target_faces_frame)
             buttons_frame.pack(fill='x', pady=5)
@@ -445,31 +503,39 @@ Note: This is separate from the content you want to convert in Step 4."""
             target_video_btn = ttk.Button(buttons_frame, text="Add Video(s)", 
                       command=lambda: self.add_files('target_faces', 'video'))
             target_video_btn.pack(side='left', padx=5)
-            ToolTip(target_video_btn, "Add videos containing Person B's face for training")
+            ToolTip(target_video_btn, "Add videos containing the NEW FACE (the face you want to put on others)")
             
             target_images_btn = ttk.Button(buttons_frame, text="Add Images", 
                       command=lambda: self.add_files('target_faces', 'images'))
             target_images_btn.pack(side='left', padx=5)
-            ToolTip(target_images_btn, "Add images containing Person B's face for training")
+            ToolTip(target_images_btn, "Add images containing the NEW FACE (the face you want to put on others)")
             
             clear_target_btn = ttk.Button(buttons_frame, text="Clear All", 
                       command=lambda: self.clear_files('target_faces'))
             clear_target_btn.pack(side='left', padx=5)
-            ToolTip(clear_target_btn, "Remove all Person B training files")
+            ToolTip(clear_target_btn, "Remove all NEW FACE training files")
             
-            if not hasattr(self, 'target_faces_listbox'):
-                self.target_faces_listbox = tk.Listbox(target_faces_frame, height=12)
+            # Always create a new listbox when mode changes
+            self.target_faces_listbox = tk.Listbox(target_faces_frame, height=12)
             self.target_faces_listbox.pack(fill='both', expand=True, pady=5)
-            ToolTip(self.target_faces_listbox, "Training material for Person B whose face will replace Person A")
+            ToolTip(self.target_faces_listbox, "Training material for the NEW FACE that will REPLACE the original face")
             
             scrollbar_target = ttk.Scrollbar(target_faces_frame, orient="vertical", command=self.target_faces_listbox.yview)
             scrollbar_target.pack(side="right", fill="y")
             self.target_faces_listbox.configure(yscrollcommand=scrollbar_target.set)
+            
+            # Update with existing files
+            if hasattr(self, 'target_faces_files'):
+                self.update_listbox(self.target_faces_listbox, self.target_faces_files)
         
     def setup_step4(self):
         """Step 4: Content to Convert"""
         frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="4. Content to Convert")
+        # Insert Step 4 at the correct position (index 3, after Step 3)
+        self.notebook.insert(3, frame, text="4. Content to Convert")
+        
+        # Store reference to the frame for tab title updates
+        self.step4_frame = frame
         
         ttk.Label(frame, text="Step 4: Content to Convert", 
                  font=('Arial', 16, 'bold')).pack(pady=10)
@@ -477,7 +543,7 @@ Note: This is separate from the content you want to convert in Step 4."""
         instructions = """Add the videos or images where you want to perform face swapping.
 
 This is your final content where:
-• Any faces matching Person A will be replaced with Person B's face
+• Any faces matching the ORIGINAL FACE will be REPLACED with the NEW FACE
 • The content can contain either person (or both)
 • You can add multiple videos/images to process
 • Results will be saved with face swaps applied
@@ -487,9 +553,9 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         ttk.Label(frame, text=instructions, wraplength=600, justify='left').pack(pady=10)
         
         # Convert content
-        convert_frame = ttk.LabelFrame(frame, text="Content to Convert", padding=10)
+        convert_frame = ttk.LabelFrame(frame, text="📺 Content Where Faces Will Be REPLACED", padding=10)
         convert_frame.pack(fill='both', expand=True, pady=10)
-        ToolTip(convert_frame, "Add the videos/images where you want to perform the face swap")
+        ToolTip(convert_frame, "Add the videos/images where ORIGINAL faces will be REPLACED with NEW faces")
         
         buttons_frame3 = ttk.Frame(convert_frame)
         buttons_frame3.pack(fill='x', pady=5)
@@ -497,12 +563,12 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         convert_video_btn = ttk.Button(buttons_frame3, text="Add Video(s)", 
                   command=lambda: self.add_files('convert', 'video'))
         convert_video_btn.pack(side='left', padx=5)
-        ToolTip(convert_video_btn, "Add videos where Person A's face should be swapped with Person B's")
+        ToolTip(convert_video_btn, "Add videos where ORIGINAL faces will be REPLACED with NEW faces")
         
         convert_images_btn = ttk.Button(buttons_frame3, text="Add Images", 
                   command=lambda: self.add_files('convert', 'images'))
         convert_images_btn.pack(side='left', padx=5)
-        ToolTip(convert_images_btn, "Add images where Person A's face should be swapped with Person B's")
+        ToolTip(convert_images_btn, "Add images where ORIGINAL faces will be REPLACED with NEW faces")
         
         clear_convert_btn = ttk.Button(buttons_frame3, text="Clear All", 
                   command=lambda: self.clear_files('convert'))
@@ -511,7 +577,7 @@ Important: This should be DIFFERENT from your training material in Steps 2 & 3."
         
         self.convert_listbox = tk.Listbox(convert_frame, height=12)
         self.convert_listbox.pack(fill='both', expand=True, pady=5)
-        ToolTip(self.convert_listbox, "These files will have Person A's face replaced with Person B's face")
+        ToolTip(self.convert_listbox, "These files will have ORIGINAL faces REPLACED with NEW faces")
         
         scrollbar3 = ttk.Scrollbar(convert_frame, orient="vertical", command=self.convert_listbox.yview)
         scrollbar3.pack(side="right", fill="y")
@@ -613,28 +679,80 @@ You can also view training progress and model information below."""
         
     def update_step_display(self):
         """Update the progress bar and step indicator"""
-        progress = (self.current_step - 1) / (self.total_steps - 1) * 100
-        self.progress_bar['value'] = progress
-        self.step_label.config(text=f"Step {self.current_step} of {self.total_steps}")
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
         
-        # Update notebook selection
-        self.notebook.select(self.current_step - 1)
+        if mode == "simple":
+            # Adjust progress calculation for simple mode (5 effective steps)
+            effective_step = self.current_step
+            if self.current_step == 5:  # Processing step in simple mode
+                effective_step = 4  # Show as step 4 of 5
+            elif self.current_step == 6:  # Results step in simple mode
+                effective_step = 5  # Show as step 5 of 5
+            elif self.current_step > 3:
+                effective_step = self.current_step - 1
+            
+            progress = (effective_step - 1) / (5 - 1) * 100  # 5 effective steps
+            self.step_label.config(text=f"Step {effective_step} of 5")
+        else:
+            progress = (self.current_step - 1) / (self.total_steps - 1) * 100
+            self.step_label.config(text=f"Step {self.current_step} of {self.total_steps}")
+        
+        self.progress_bar['value'] = progress
+        
+        # Update notebook selection (map current_step to actual tab index)
+        if mode == "simple":
+            # Simple mode tab mapping: Step 1->Tab 0, Step 2->Tab 1, Step 3->Tab 2, Step 5->Tab 4, Step 6->Tab 5
+            if self.current_step <= 3:
+                tab_index = self.current_step - 1
+            elif self.current_step == 5:
+                tab_index = 4  # Processing tab
+            else:  # self.current_step == 6
+                tab_index = 5  # Results tab
+        else:
+            # Advanced mode: direct mapping
+            tab_index = self.current_step - 1
+            
+        self.notebook.select(tab_index)
         
         # Update button states
         self.prev_btn.config(state='normal' if self.current_step > 1 else 'disabled')
-        self.next_btn.config(state='normal' if self.current_step < self.total_steps else 'disabled')
+        
+        # Next button logic
+        if mode == "simple":
+            # In simple mode: allow next until step 3, then skip to step 5, then allow step 6 (results)
+            next_enabled = self.current_step <= 3 or self.current_step == 5
+        else:
+            next_enabled = self.current_step < self.total_steps
+            
+        self.next_btn.config(state='normal' if next_enabled else 'disabled')
         
     def prev_step(self):
         """Go to previous step"""
         if self.current_step > 1:
-            self.current_step -= 1
+            mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+            
+            # In simple mode, skip step 4 in both directions
+            if mode == "simple" and self.current_step == 5:
+                self.current_step = 3  # Skip step 4 in simple mode (Processing -> Content)
+            elif mode == "simple" and self.current_step == 6:
+                self.current_step = 5  # Results -> Processing in simple mode
+            else:
+                self.current_step -= 1
+                
             self.update_step_display()
             
     def next_step(self):
         """Go to next step"""
         if self.validate_current_step():
+            mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+            
             if self.current_step < self.total_steps:
-                self.current_step += 1
+                # In simple mode, skip step 4 (go from step 3 to step 5)
+                if mode == "simple" and self.current_step == 3:
+                    self.current_step = 5  # Skip step 4 in simple mode
+                else:
+                    self.current_step += 1
+                    
                 self.update_step_display()
                 
     def validate_current_step(self) -> bool:
@@ -650,30 +768,30 @@ You can also view training progress and model information below."""
             if mode == "simple":
                 # Simple mode: Check target faces
                 if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
-                    messagebox.showerror("Error", "Please add training material for your target person first.")
+                    messagebox.showerror("Error", "Please add training material for your NEW FACE (the face you want to put on others) first.")
                     return False
             else:
                 # Advanced mode: Check Person A
                 if not self.source_files:
-                    messagebox.showerror("Error", "Please add training material for Person A first.")
+                    messagebox.showerror("Error", "Please add training material for the ORIGINAL FACE (the face you want to remove) first.")
                     return False
                 
         elif self.current_step == 3:
             if mode == "simple":
-                # Simple mode: Check content to convert
+                # Simple mode: Check content to convert (this is the final input step)
                 if not hasattr(self, 'convert_files') or not self.convert_files:
-                    messagebox.showerror("Error", "Please add content to convert first.")
+                    messagebox.showerror("Error", "Please add content where faces will be REPLACED first.")
                     return False
             else:
                 # Advanced mode: Check Person B
                 if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
-                    messagebox.showerror("Error", "Please add training material for Person B first.")
+                    messagebox.showerror("Error", "Please add training material for the NEW FACE (the replacement face) first.")
                     return False
                 
         elif self.current_step == 4 and mode == "advanced":
-            # Advanced mode: Check content to convert
+            # Advanced mode only: Check content to convert
             if not hasattr(self, 'convert_files') or not self.convert_files:
-                messagebox.showerror("Error", "Please add content to convert first.")
+                messagebox.showerror("Error", "Please add content where faces will be REPLACED first.")
                 return False
                 
         return True
@@ -730,6 +848,18 @@ You can also view training progress and model information below."""
             image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
             
             for file in files:
+                # Filter out problematic macOS system files and hidden files
+                filename = os.path.basename(file)
+                if (filename.startswith('._') or  # macOS metadata files
+                    filename.startswith('.DS_Store') or  # macOS directory metadata
+                    filename.startswith('Thumbs.db') or  # Windows thumbnail cache
+                    filename.startswith('.') or  # Other hidden files
+                    'copy' in filename.lower() or  # Files with "copy" often have encoding issues
+                    not os.path.exists(file) or  # File doesn't exist
+                    os.path.getsize(file) == 0):  # Empty file
+                    invalid_files.append(file)
+                    continue
+                    
                 file_ext = os.path.splitext(file.lower())[1]
                 if media_type == 'video' and file_ext in video_extensions:
                     valid_files.append(file)
@@ -829,18 +959,31 @@ You can also view training progress and model information below."""
         
     def validate_all_inputs(self) -> bool:
         """Validate all inputs before processing"""
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        
         if not self.project_dir:
             messagebox.showerror("Error", "Project folder not selected.")
             return False
-        if not self.source_files:
-            messagebox.showerror("Error", "No source files selected.")
-            return False
-        if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
-            messagebox.showerror("Error", "No target face files selected.")
-            return False
-        if not hasattr(self, 'convert_files') or not self.convert_files:
-            messagebox.showerror("Error", "No files to convert selected.")
-            return False
+            
+        if mode == "simple":
+            # Simple Mode: Only need NEW FACE training material and content to convert
+            if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
+                messagebox.showerror("Error", "No NEW FACE training material selected.")
+                return False
+            if not hasattr(self, 'convert_files') or not self.convert_files:
+                messagebox.showerror("Error", "No content to convert selected.")
+                return False
+        else:
+            # Advanced Mode: Need both ORIGINAL and NEW face training material plus content
+            if not self.source_files:
+                messagebox.showerror("Error", "No ORIGINAL FACE training material selected.")
+                return False
+            if not hasattr(self, 'target_faces_files') or not self.target_faces_files:
+                messagebox.showerror("Error", "No NEW FACE training material selected.")
+                return False
+            if not hasattr(self, 'convert_files') or not self.convert_files:
+                messagebox.showerror("Error", "No content to convert selected.")
+                return False
         return True
         
     def run_processing(self):
@@ -849,60 +992,90 @@ You can also view training progress and model information below."""
             mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
             self.log_message(f"🚀 Starting FaceSwap processing pipeline in {mode} mode...")
             
-            if mode == "simple":
-                # Simple mode: Only extract target faces, skip Person A
-                self.log_message("ℹ️ Simple mode: Skipping Person A training, will replace any detected faces")
+            # Clean all input files first to avoid crashes
+            self.log_message("🧹 Cleaning input files...")
+            
+            # Clean target faces files
+            if hasattr(self, 'target_faces_files'):
+                original_count = len(self.target_faces_files)
+                self.target_faces_files = self.clean_input_files(self.target_faces_files)
+                self.log_message(f"NEW FACE files: {len(self.target_faces_files)}/{original_count} valid")
+            
+            # Clean convert files  
+            if hasattr(self, 'convert_files'):
+                original_count = len(self.convert_files)
+                self.convert_files = self.clean_input_files(self.convert_files)
+                self.log_message(f"Content files: {len(self.convert_files)}/{original_count} valid")
                 
-                # Step 1: Extract target faces only
-                self.update_progress("Extracting target person faces...")
+            # Clean source files (Advanced mode only)
+            if mode == "advanced" and hasattr(self, 'source_files'):
+                original_count = len(self.source_files)
+                self.source_files = self.clean_input_files(self.source_files)
+                self.log_message(f"ORIGINAL FACE files: {len(self.source_files)}/{original_count} valid")
+            
+            if mode == "simple":
+                # Simple mode: Extract target faces + faces from content, then train
+                self.log_message("ℹ️ Simple mode: Will replace any detected faces with your NEW face")
+                
+                # Step 1: Extract target faces (NEW face to put on others)
+                self.update_progress("Extracting NEW FACE training material...")
                 target_output = os.path.join(self.project_dir, 'target_faces')
                 os.makedirs(target_output, exist_ok=True)
                 
                 for i, file in enumerate(self.target_faces_files):
-                    self.log_message(f"Processing target file {i+1}/{len(self.target_faces_files)}: {os.path.basename(file)}")
+                    self.log_message(f"Processing NEW face file {i+1}/{len(self.target_faces_files)}: {os.path.basename(file)}")
                     self.extract_faces(file, target_output, "target")
                 
-                # Create empty source folder for compatibility
+                # Step 2: Extract faces from content to be converted (these become "source" faces)
+                self.update_progress("Extracting faces from content to be converted...")
                 source_output = os.path.join(self.project_dir, 'source_faces')
                 os.makedirs(source_output, exist_ok=True)
                 
-                # Check target face count
-                target_count = len([f for f in os.listdir(target_output) if f.endswith('.png')])
-                self.log_message(f"✅ Extraction complete: {target_count} target faces")
+                for i, file in enumerate(self.convert_files):
+                    self.log_message(f"Extracting faces from content {i+1}/{len(self.convert_files)}: {os.path.basename(file)}")
+                    self.extract_faces(file, source_output, "content_source")
                 
-                if target_count < 50:
-                    self.log_message("⚠️ Warning: Less than 50 target faces found. Results may be poor.")
+                # Check face counts
+                source_count = len([f for f in os.listdir(source_output) if f.endswith('.png')])
+                target_count = len([f for f in os.listdir(target_output) if f.endswith('.png')])
+                
+                self.log_message(f"✅ Extraction complete: {source_count} faces from content, {target_count} NEW face training images")
+                
+                if source_count == 0:
+                    raise Exception("No faces found in content to convert. Please check your input files.")
+                if target_count < 20:
+                    self.log_message("⚠️ Warning: Less than 20 NEW face training images. Results may be poor. Consider adding more training material.")
                     
             else:
                 # Advanced mode: Extract both Person A and Person B
-                # Step 1: Extract source faces
-                self.update_progress("Extracting source faces (Person A)...")
+                # Step 1: Extract source faces (ORIGINAL faces to remove)
+                self.update_progress("Extracting ORIGINAL FACE training material...")
                 source_output = os.path.join(self.project_dir, 'source_faces')
                 os.makedirs(source_output, exist_ok=True)
                 
                 for i, file in enumerate(self.source_files):
-                    self.log_message(f"Processing source file {i+1}/{len(self.source_files)}: {os.path.basename(file)}")
+                    self.log_message(f"Processing ORIGINAL face file {i+1}/{len(self.source_files)}: {os.path.basename(file)}")
                     self.extract_faces(file, source_output, "source")
                     
-                # Step 2: Extract target faces  
-                self.update_progress("Extracting target faces (Person B)...")
+                # Step 2: Extract target faces (NEW faces to put on others)
+                self.update_progress("Extracting NEW FACE training material...")
                 target_output = os.path.join(self.project_dir, 'target_faces')
                 os.makedirs(target_output, exist_ok=True)
                 
                 for i, file in enumerate(self.target_faces_files):
-                    self.log_message(f"Processing target file {i+1}/{len(self.target_faces_files)}: {os.path.basename(file)}")
+                    self.log_message(f"Processing NEW face file {i+1}/{len(self.target_faces_files)}: {os.path.basename(file)}")
                     self.extract_faces(file, target_output, "target")
                     
                 # Check face counts
                 source_count = len([f for f in os.listdir(source_output) if f.endswith('.png')])
                 target_count = len([f for f in os.listdir(target_output) if f.endswith('.png')])
                 
-                self.log_message(f"✅ Extraction complete: {source_count} source faces, {target_count} target faces")
+                self.log_message(f"✅ Extraction complete: {source_count} ORIGINAL faces, {target_count} NEW faces")
                 
                 if source_count < 50:
-                    self.log_message("⚠️ Warning: Less than 50 source faces found. Results may be poor.")
+                    self.log_message("⚠️ Warning: Less than 50 ORIGINAL face training images. Results may be poor.")
                 if target_count < 50:
-                    self.log_message("⚠️ Warning: Less than 50 target faces found. Results may be poor.")
+                    self.log_message("⚠️ Warning: Less than 50 NEW face training images. Results may be poor.")
                 
             # Step 3: Train model (same for both modes)
             self.update_progress("Training face-swapping model (this may take hours)...")
@@ -944,6 +1117,14 @@ You can also view training progress and model information below."""
         """Extract faces from input file"""
         self.log_message(f"Extracting {face_type} faces from: {os.path.basename(input_file)}")
         
+        # Clean the input file first
+        cleaned_files = self.clean_input_files([input_file])
+        if not cleaned_files:
+            self.log_message(f"⚠️ Skipping {os.path.basename(input_file)} - file has issues")
+            return
+            
+        input_file = cleaned_files[0]  # Use cleaned file
+        
         # Check if input is a single image file
         image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
         file_ext = os.path.splitext(input_file.lower())[1]
@@ -959,7 +1140,7 @@ You can also view training progress and model information below."""
             shutil.copy2(input_file, temp_image_path)
             
             cmd = [
-                'python', 'faceswap.py', 'extract',
+                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
                 '-i', temp_input_dir,  # Use folder instead of single file
                 '-o', output_dir,
                 '-D', 's3fd',
@@ -977,7 +1158,7 @@ You can also view training progress and model information below."""
         else:
             # For videos, use the file directly
             cmd = [
-                'python', 'faceswap.py', 'extract',
+                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'extract',
                 '-i', input_file,
                 '-o', output_dir,
                 '-D', 's3fd',
@@ -992,7 +1173,7 @@ You can also view training progress and model information below."""
         self.log_message("Training model - this may take several hours...")
         
         cmd = [
-            'python', 'faceswap.py', 'train',
+            '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'train',
             '-A', source_dir,
             '-B', target_dir, 
             '-m', model_dir,
@@ -1026,7 +1207,7 @@ You can also view training progress and model information below."""
             os.makedirs(temp_output_dir, exist_ok=True)
             
             cmd = [
-                'python', 'faceswap.py', 'convert',
+                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'convert',
                 '-i', temp_input_dir,
                 '-o', temp_output_dir,
                 '-m', model_dir
@@ -1057,7 +1238,7 @@ You can also view training progress and model information below."""
             output_file = os.path.join(output_dir, f"swapped_{base_name}.mp4")
             
             cmd = [
-                'python', 'faceswap.py', 'convert',
+                '/Users/admin/micromamba/envs/faceswap/bin/python', 'faceswap.py', 'convert',
                 '-i', input_file,
                 '-o', output_file,
                 '-m', model_dir
@@ -1073,6 +1254,8 @@ You can also view training progress and model information below."""
     def run_command(self, cmd: List[str]):
         """Run a command and capture output"""
         try:
+            self.log_message(f"🔧 Running command: {' '.join(cmd[:3])}...")  # Log first 3 parts for privacy
+            
             process = subprocess.Popen(
                 cmd,
                 cwd=self.faceswap_dir,
@@ -1084,11 +1267,25 @@ You can also view training progress and model information below."""
             )
             
             for line in process.stdout:
-                self.log_message(line.strip())
+                if line.strip():  # Only log non-empty lines
+                    self.log_message(line.strip())
                 
             process.wait()
             if process.returncode != 0:
-                raise Exception(f"Command failed with return code {process.returncode}")
+                error_msg = f"Command failed with return code {process.returncode}"
+                self.log_message(f"❌ Error: {error_msg}")
+                raise Exception(error_msg)
+            else:
+                self.log_message("✅ Command completed successfully")
+                
+        except FileNotFoundError as e:
+            error_msg = f"Command not found: {e}"
+            self.log_message(f"❌ Error: {error_msg}")
+            raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Command execution failed: {str(e)}"
+            self.log_message(f"❌ Error: {error_msg}")
+            raise
                 
         except Exception as e:
             self.log_message(f"Command failed: {str(e)}")
@@ -1119,7 +1316,12 @@ You can also view training progress and model information below."""
         
     def show_results(self):
         """Switch to results tab and populate"""
-        self.current_step = 6
+        mode = getattr(self, 'mode_var', tk.StringVar(value="simple")).get()
+        if mode == "simple":
+            # In simple mode, this is the final step after processing
+            self.current_step = 6  # Use step 6 internally to map to results tab (index 5)
+        else:
+            self.current_step = 6  # Results step in advanced mode
         self.update_step_display()
         
         # Populate results
